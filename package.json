@@ -1,6 +1,6 @@
 {
   "name": "@luanky/network-inspector",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Inspetor e monitor de requisicoes HTTP universal para React Native, React, Angular, Vue e Desktop.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
