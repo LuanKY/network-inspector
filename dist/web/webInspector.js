@@ -14,7 +14,16 @@ function initWebNetworkInspector(options) {
     isWebInitialized = true;
     const host = document.createElement("div");
     host.id = "network-inspector-host";
-    document.body.appendChild(host);
+    const mountHost = () => {
+        if (!document.body) {
+            document.addEventListener("DOMContentLoaded", mountHost, { once: true });
+            return;
+        }
+        if (!document.getElementById("network-inspector-host")) {
+            document.body.appendChild(host);
+        }
+    };
+    mountHost();
     const shadow = host.attachShadow({ mode: "open" });
     let isModalOpen = false;
     let searchQuery = "";

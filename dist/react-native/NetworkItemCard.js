@@ -34,9 +34,10 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetworkItemCard = void 0;
+const jsx_runtime_1 = require("react/jsx-runtime");
 const vector_icons_1 = require("@expo/vector-icons");
 const Clipboard = __importStar(require("expo-clipboard"));
-const react_1 = __importStar(require("react"));
+const react_1 = require("react");
 const react_native_1 = require("react-native");
 const react_native_safe_area_context_1 = require("react-native-safe-area-context");
 const getMethodColor = (method) => {
@@ -123,267 +124,30 @@ const NetworkItemCard = ({ item }) => {
     };
     const renderCodeViewer = (isFullModal = false) => {
         const prefix = isFullModal ? "modal" : "inline";
-        return (<react_native_1.ScrollView nestedScrollEnabled style={[styles.codeScroll, isFullModal && styles.codeScrollModal]}>
-                {tab === "response" && (<react_native_1.View style={styles.codeContentBox}>
-                        <react_native_1.View style={styles.fieldHeaderRow}>
-                            <react_native_1.Text style={styles.fieldHeaderTitle}>
-                                Resposta
-                            </react_native_1.Text>
-                            <react_native_1.TouchableOpacity onPress={() => handleCopy(formatContent(rawResponse), `resp_${prefix}`)} style={styles.fieldCopyButton} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                                <vector_icons_1.MaterialCommunityIcons name={copiedKey === `resp_${prefix}` ? "check" : "content-copy"} size={13} color={copiedKey === `resp_${prefix}` ? "#10B981" : "#94A3B8"}/>
-                                <react_native_1.Text style={[
-                    styles.fieldCopyText,
-                    copiedKey === `resp_${prefix}` && styles.fieldCopyTextSuccess,
-                ]}>
-                                    {copiedKey === `resp_${prefix}` ? "Copiado" : "Copiar"}
-                                </react_native_1.Text>
-                            </react_native_1.TouchableOpacity>
-                        </react_native_1.View>
-
-                        {item.errorMessage && (<react_native_1.View style={styles.errorBanner}>
-                                <react_native_1.View style={styles.bannerHeaderRow}>
-                                    <react_native_1.Text style={styles.errorBannerText} selectable={true}>
-                                        Erro: {item.errorMessage}
-                                    </react_native_1.Text>
-                                    <react_native_1.TouchableOpacity onPress={() => handleCopy(item.errorMessage || "", `err_${prefix}`)} style={styles.fieldCopyButton} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                                        <vector_icons_1.MaterialCommunityIcons name={copiedKey === `err_${prefix}` ? "check" : "content-copy"} size={13} color={copiedKey === `err_${prefix}` ? "#86EFAC" : "#FCA5A5"}/>
-                                        <react_native_1.Text style={[
-                        styles.fieldCopyText,
-                        { color: copiedKey === `err_${prefix}` ? "#86EFAC" : "#FCA5A5" },
-                    ]}>
-                                            {copiedKey === `err_${prefix}` ? "Copiado" : "Copiar"}
-                                        </react_native_1.Text>
-                                    </react_native_1.TouchableOpacity>
-                                </react_native_1.View>
-                            </react_native_1.View>)}
-                        <react_native_1.Text style={styles.codeText} selectable={true}>
-                            {formatContent(rawResponse)}
-                        </react_native_1.Text>
-                    </react_native_1.View>)}
-
-                {tab === "request" && (<react_native_1.View style={styles.codeContentBox}>
-                        {item.queryParams && (<react_native_1.View style={styles.subSection}>
-                                <react_native_1.View style={styles.fieldHeaderRow}>
-                                    <react_native_1.Text style={styles.subSectionTitle}>
-                                        Query Parameters:
-                                    </react_native_1.Text>
-                                    <react_native_1.TouchableOpacity onPress={() => handleCopy(formatContent(item.queryParams), `query_${prefix}`)} style={styles.fieldCopyButton} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                                        <vector_icons_1.MaterialCommunityIcons name={copiedKey === `query_${prefix}` ? "check" : "content-copy"} size={13} color={copiedKey === `query_${prefix}` ? "#10B981" : "#94A3B8"}/>
-                                        <react_native_1.Text style={[
-                        styles.fieldCopyText,
-                        copiedKey === `query_${prefix}` && styles.fieldCopyTextSuccess,
-                    ]}>
-                                            {copiedKey === `query_${prefix}` ? "Copiado" : "Copiar"}
-                                        </react_native_1.Text>
-                                    </react_native_1.TouchableOpacity>
-                                </react_native_1.View>
-                                <react_native_1.Text style={styles.codeText} selectable={true}>
-                                    {formatContent(item.queryParams)}
-                                </react_native_1.Text>
-                            </react_native_1.View>)}
-
-                        {hasBody && (<react_native_1.View style={styles.subSection}>
-                                <react_native_1.View style={styles.fieldHeaderRow}>
-                                    <react_native_1.Text style={styles.subSectionTitle}>
-                                        Corpo da Requisição (Body):
-                                    </react_native_1.Text>
-                                    <react_native_1.TouchableOpacity onPress={() => handleCopy(formatContent(item.requestData), `body_${prefix}`)} style={styles.fieldCopyButton} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                                        <vector_icons_1.MaterialCommunityIcons name={copiedKey === `body_${prefix}` ? "check" : "content-copy"} size={13} color={copiedKey === `body_${prefix}` ? "#10B981" : "#94A3B8"}/>
-                                        <react_native_1.Text style={[
-                        styles.fieldCopyText,
-                        copiedKey === `body_${prefix}` && styles.fieldCopyTextSuccess,
-                    ]}>
-                                            {copiedKey === `body_${prefix}` ? "Copiado" : "Copiar"}
-                                        </react_native_1.Text>
-                                    </react_native_1.TouchableOpacity>
-                                </react_native_1.View>
-                                <react_native_1.Text style={styles.codeText} selectable={true}>
-                                    {formatContent(item.requestData)}
-                                </react_native_1.Text>
-                            </react_native_1.View>)}
-
-                        {!item.queryParams && !hasBody && (<react_native_1.Text style={styles.emptyText}>
-                                Requisição sem corpo ou parâmetros de query.
-                            </react_native_1.Text>)}
-                    </react_native_1.View>)}
-
-                {tab === "headers" && (<react_native_1.View style={styles.codeContentBox}>
-                        <react_native_1.View style={styles.fieldHeaderRow}>
-                            <react_native_1.Text style={styles.subSectionTitle}>
-                                Headers da Requisição:
-                            </react_native_1.Text>
-                            <react_native_1.TouchableOpacity onPress={() => handleCopy(formatContent(item.headers), `headers_${prefix}`)} style={styles.fieldCopyButton} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
-                                <vector_icons_1.MaterialCommunityIcons name={copiedKey === `headers_${prefix}` ? "check" : "content-copy"} size={13} color={copiedKey === `headers_${prefix}` ? "#10B981" : "#94A3B8"}/>
-                                <react_native_1.Text style={[
-                    styles.fieldCopyText,
-                    copiedKey === `headers_${prefix}` && styles.fieldCopyTextSuccess,
-                ]}>
-                                    {copiedKey === `headers_${prefix}` ? "Copiado" : "Copiar"}
-                                </react_native_1.Text>
-                            </react_native_1.TouchableOpacity>
-                        </react_native_1.View>
-                        <react_native_1.Text style={styles.codeText} selectable={true}>
-                            {formatContent(item.headers)}
-                        </react_native_1.Text>
-                    </react_native_1.View>)}
-            </react_native_1.ScrollView>);
+        return ((0, jsx_runtime_1.jsxs)(react_native_1.ScrollView, { nestedScrollEnabled: true, style: [styles.codeScroll, isFullModal && styles.codeScrollModal], children: [tab === "response" && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.codeContentBox, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fieldHeaderRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.fieldHeaderTitle, children: "Resposta" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(formatContent(rawResponse), `resp_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `resp_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `resp_${prefix}` ? "#10B981" : "#94A3B8" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                styles.fieldCopyText,
+                                                copiedKey === `resp_${prefix}` && styles.fieldCopyTextSuccess,
+                                            ], children: copiedKey === `resp_${prefix}` ? "Copiado" : "Copiar" })] })] }), item.errorMessage && ((0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.errorBanner, children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.bannerHeaderRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.Text, { style: styles.errorBannerText, selectable: true, children: ["Erro: ", item.errorMessage] }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.errorMessage || "", `err_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `err_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `err_${prefix}` ? "#86EFAC" : "#FCA5A5" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                    styles.fieldCopyText,
+                                                    { color: copiedKey === `err_${prefix}` ? "#86EFAC" : "#FCA5A5" },
+                                                ], children: copiedKey === `err_${prefix}` ? "Copiado" : "Copiar" })] })] }) })), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(rawResponse) })] })), tab === "request" && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.codeContentBox, children: [item.queryParams && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.subSection, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fieldHeaderRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.subSectionTitle, children: "Query Parameters:" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(formatContent(item.queryParams), `query_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `query_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `query_${prefix}` ? "#10B981" : "#94A3B8" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                        styles.fieldCopyText,
+                                                        copiedKey === `query_${prefix}` && styles.fieldCopyTextSuccess,
+                                                    ], children: copiedKey === `query_${prefix}` ? "Copiado" : "Copiar" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(item.queryParams) })] })), hasBody && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.subSection, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fieldHeaderRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.subSectionTitle, children: "Corpo da Requisi\u00E7\u00E3o (Body):" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(formatContent(item.requestData), `body_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `body_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `body_${prefix}` ? "#10B981" : "#94A3B8" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                        styles.fieldCopyText,
+                                                        copiedKey === `body_${prefix}` && styles.fieldCopyTextSuccess,
+                                                    ], children: copiedKey === `body_${prefix}` ? "Copiado" : "Copiar" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(item.requestData) })] })), !item.queryParams && !hasBody && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.emptyText, children: "Requisi\u00E7\u00E3o sem corpo ou par\u00E2metros de query." }))] })), tab === "headers" && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.codeContentBox, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fieldHeaderRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.subSectionTitle, children: "Headers da Requisi\u00E7\u00E3o:" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(formatContent(item.headers), `headers_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `headers_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `headers_${prefix}` ? "#10B981" : "#94A3B8" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                styles.fieldCopyText,
+                                                copiedKey === `headers_${prefix}` && styles.fieldCopyTextSuccess,
+                                            ], children: copiedKey === `headers_${prefix}` ? "Copiado" : "Copiar" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(item.headers) })] }))] }));
     };
-    return (<>
-            <react_native_1.View style={styles.cardContainer}>
-                <react_native_1.TouchableOpacity activeOpacity={0.75} onPress={() => setExpanded(!expanded)} style={styles.cardHeaderPressable}>
-                    <react_native_1.View style={styles.topRow}>
-                        <react_native_1.View style={styles.badgeRow}>
-                            <react_native_1.View style={[styles.methodBadge, { backgroundColor: methodColor }]}>
-                                <react_native_1.Text style={styles.methodBadgeText}>
-                                    {method}
-                                </react_native_1.Text>
-                            </react_native_1.View>
-
-                            <react_native_1.View style={[styles.statusBadge, { backgroundColor: statusBadge.bg }]}>
-                                <react_native_1.Text style={[styles.statusBadgeText, { color: statusBadge.textColor }]}>
-                                    {statusBadge.label}
-                                </react_native_1.Text>
-                            </react_native_1.View>
-
-                            <react_native_1.View style={styles.durationBadge}>
-                                <vector_icons_1.MaterialCommunityIcons name="clock-outline" size={13} color="#0284C7"/>
-                                <react_native_1.Text style={styles.durationText}>
-                                    {item.duration !== undefined ? `${item.duration}ms` : "--"}
-                                </react_native_1.Text>
-                            </react_native_1.View>
-                        </react_native_1.View>
-
-                        <react_native_1.View style={styles.timeRow}>
-                            <react_native_1.Text style={styles.timeText}>
-                                {item.timeFormatted}
-                            </react_native_1.Text>
-                            <react_native_1.View style={styles.chevronCircle}>
-                                <vector_icons_1.FontAwesome5 name={expanded ? "chevron-up" : "chevron-down"} size={10} color="#64748B"/>
-                            </react_native_1.View>
-                        </react_native_1.View>
-                    </react_native_1.View>
-
-                    <react_native_1.View style={styles.urlBox}>
-                        {item.baseUrl ? (<react_native_1.Text style={styles.baseUrlText} numberOfLines={1}>
-                                {item.baseUrl}
-                            </react_native_1.Text>) : null}
-                        <react_native_1.View style={styles.endpointRow}>
-                            <react_native_1.Text style={styles.endpointText} numberOfLines={expanded ? 10 : 2}>
-                                {item.endpoint || item.url || "/"}
-                            </react_native_1.Text>
-                            <react_native_1.TouchableOpacity onPress={() => handleCopy(item.fullUrl || item.url || item.endpoint, `url_${item.id}`)} style={styles.copySmallButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                                <vector_icons_1.MaterialCommunityIcons name={copiedKey === `url_${item.id}` ? "check" : "content-copy"} size={14} color={copiedKey === `url_${item.id}` ? "#10B981" : "#64748B"}/>
-                                {copiedKey === `url_${item.id}` && (<react_native_1.Text style={styles.copiedInlineText}>Copiado</react_native_1.Text>)}
-                            </react_native_1.TouchableOpacity>
-                        </react_native_1.View>
-                    </react_native_1.View>
-                </react_native_1.TouchableOpacity>
-
-                {expanded && (<react_native_1.View style={styles.expandedSection}>
-                        <react_native_1.View style={styles.tabsRow}>
-                            <react_native_1.View style={styles.tabsButtonGroup}>
-                                <react_native_1.TouchableOpacity onPress={() => setTab("response")} style={[styles.tabButton, tab === "response" && styles.tabButtonActive]}>
-                                    <react_native_1.Text style={[styles.tabButtonText, tab === "response" && styles.tabButtonTextActive]}>
-                                        Resposta
-                                    </react_native_1.Text>
-                                </react_native_1.TouchableOpacity>
-
-                                <react_native_1.TouchableOpacity onPress={() => setTab("request")} style={[styles.tabButton, tab === "request" && styles.tabButtonActive]}>
-                                    <react_native_1.Text style={[styles.tabButtonText, tab === "request" && styles.tabButtonTextActive]}>
-                                        {hasParams || hasBody ? "Payload •" : "Payload"}
-                                    </react_native_1.Text>
-                                </react_native_1.TouchableOpacity>
-
-                                <react_native_1.TouchableOpacity onPress={() => setTab("headers")} style={[styles.tabButton, tab === "headers" && styles.tabButtonActive]}>
-                                    <react_native_1.Text style={[styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive]}>
-                                        Headers
-                                    </react_native_1.Text>
-                                </react_native_1.TouchableOpacity>
-                            </react_native_1.View>
-
-                            <react_native_1.TouchableOpacity onPress={() => setFullScreenVisible(true)} style={styles.expandButton}>
-                                <vector_icons_1.FontAwesome5 name="expand-alt" size={11} color="#4F46E5"/>
-                                <react_native_1.Text style={styles.expandButtonText}>
-                                    Expandir
-                                </react_native_1.Text>
-                            </react_native_1.TouchableOpacity>
-                        </react_native_1.View>
-
-                        {renderCodeViewer(false)}
-                    </react_native_1.View>)}
-            </react_native_1.View>
-
-            <react_native_1.Modal visible={fullScreenVisible} animationType="slide" onRequestClose={() => setFullScreenVisible(false)}>
-                <react_native_1.View style={[
-            styles.fullModalContainer,
-            {
-                paddingTop: Math.max(insets.top, 24),
-                paddingBottom: Math.max(insets.bottom, 12),
-            },
-        ]}>
-                    <react_native_1.View style={styles.fullModalHeader}>
-                        <react_native_1.View style={styles.fullModalInfo}>
-                            <react_native_1.View style={styles.fullModalBadgeRow}>
-                                <react_native_1.View style={[styles.methodBadge, { backgroundColor: methodColor }]}>
-                                    <react_native_1.Text style={styles.methodBadgeText}>
-                                        {method}
-                                    </react_native_1.Text>
-                                </react_native_1.View>
-                                <react_native_1.View style={[styles.statusBadge, { backgroundColor: statusBadge.bg }]}>
-                                    <react_native_1.Text style={[styles.statusBadgeText, { color: statusBadge.textColor }]}>
-                                        {statusBadge.label}
-                                    </react_native_1.Text>
-                                </react_native_1.View>
-                                <react_native_1.Text style={styles.durationText}>
-                                    {item.duration !== undefined ? `${item.duration}ms` : "--"}
-                                </react_native_1.Text>
-                            </react_native_1.View>
-                            <react_native_1.View style={styles.endpointRow}>
-                                <react_native_1.Text style={styles.fullModalEndpointText} numberOfLines={3}>
-                                    {item.endpoint || item.url || "/"}
-                                </react_native_1.Text>
-                                <react_native_1.TouchableOpacity onPress={() => handleCopy(item.fullUrl || item.url || item.endpoint, `modal_url_${item.id}`)} style={styles.copySmallButton} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                                    <vector_icons_1.MaterialCommunityIcons name={copiedKey === `modal_url_${item.id}` ? "check" : "content-copy"} size={14} color={copiedKey === `modal_url_${item.id}` ? "#10B981" : "#64748B"}/>
-                                    {copiedKey === `modal_url_${item.id}` && (<react_native_1.Text style={styles.copiedInlineText}>Copiado</react_native_1.Text>)}
-                                </react_native_1.TouchableOpacity>
-                            </react_native_1.View>
-                        </react_native_1.View>
-
-                        <react_native_1.TouchableOpacity onPress={() => setFullScreenVisible(false)} style={styles.closeRoundButton}>
-                            <vector_icons_1.FontAwesome5 name="times" size={14} color="#0F172A"/>
-                        </react_native_1.TouchableOpacity>
-                    </react_native_1.View>
-
-                    <react_native_1.View style={styles.fullModalBody}>
-                        <react_native_1.View style={styles.modalTabsRow}>
-                            <react_native_1.View style={styles.tabsButtonGroup}>
-                                <react_native_1.TouchableOpacity onPress={() => setTab("response")} style={[styles.tabButton, styles.modalTabButton, tab === "response" && styles.tabButtonActive]}>
-                                    <react_native_1.Text style={[styles.tabButtonText, tab === "response" && styles.tabButtonTextActive]}>
-                                        Resposta
-                                    </react_native_1.Text>
-                                </react_native_1.TouchableOpacity>
-
-                                <react_native_1.TouchableOpacity onPress={() => setTab("request")} style={[styles.tabButton, styles.modalTabButton, tab === "request" && styles.tabButtonActive]}>
-                                    <react_native_1.Text style={[styles.tabButtonText, tab === "request" && styles.tabButtonTextActive]}>
-                                        Payload / Params
-                                    </react_native_1.Text>
-                                </react_native_1.TouchableOpacity>
-
-                                <react_native_1.TouchableOpacity onPress={() => setTab("headers")} style={[styles.tabButton, styles.modalTabButton, tab === "headers" && styles.tabButtonActive]}>
-                                    <react_native_1.Text style={[styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive]}>
-                                        Headers
-                                    </react_native_1.Text>
-                                </react_native_1.TouchableOpacity>
-                            </react_native_1.View>
-                        </react_native_1.View>
-
-                        <react_native_1.View style={styles.fullCodeWrapper}>
-                            {renderCodeViewer(true)}
-                        </react_native_1.View>
-                    </react_native_1.View>
-                </react_native_1.View>
-            </react_native_1.Modal>
-        </>);
+    return ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.cardContainer, children: [(0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { activeOpacity: 0.75, onPress: () => setExpanded(!expanded), style: styles.cardHeaderPressable, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.topRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.badgeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.methodBadge, { backgroundColor: methodColor }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.methodBadgeText, children: method }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.statusBadge, { backgroundColor: statusBadge.bg }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.statusBadgeText, { color: statusBadge.textColor }], children: statusBadge.label }) }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.durationBadge, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: "clock-outline", size: 13, color: "#0284C7" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.durationText, children: item.duration !== undefined ? `${item.duration}ms` : "--" })] })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.timeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.timeText, children: item.timeFormatted }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.chevronCircle, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: expanded ? "chevron-up" : "chevron-down", size: 10, color: "#64748B" }) })] })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.urlBox, children: [item.baseUrl ? ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.baseUrlText, numberOfLines: 1, children: item.baseUrl })) : null, (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.endpointRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.endpointText, numberOfLines: expanded ? 10 : 2, children: item.endpoint || item.url || "/" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.fullUrl || item.url || item.endpoint, `url_${item.id}`), style: styles.copySmallButton, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `url_${item.id}` ? "check" : "content-copy", size: 14, color: copiedKey === `url_${item.id}` ? "#10B981" : "#64748B" }), copiedKey === `url_${item.id}` && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.copiedInlineText, children: "Copiado" }))] })] })] })] }), expanded && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.expandedSection, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsButtonGroup, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("response"), style: [styles.tabButton, tab === "response" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "response" && styles.tabButtonTextActive], children: "Resposta" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("request"), style: [styles.tabButton, tab === "request" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "request" && styles.tabButtonTextActive], children: hasParams || hasBody ? "Payload •" : "Payload" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("headers"), style: [styles.tabButton, tab === "headers" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive], children: "Headers" }) })] }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => setFullScreenVisible(true), style: styles.expandButton, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "expand-alt", size: 11, color: "#4F46E5" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.expandButtonText, children: "Expandir" })] })] }), renderCodeViewer(false)] }))] }), (0, jsx_runtime_1.jsx)(react_native_1.Modal, { visible: fullScreenVisible, animationType: "slide", onRequestClose: () => setFullScreenVisible(false), children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: [
+                        styles.fullModalContainer,
+                        {
+                            paddingTop: Math.max(insets.top, 24),
+                            paddingBottom: Math.max(insets.bottom, 12),
+                        },
+                    ], children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalHeader, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalInfo, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalBadgeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.methodBadge, { backgroundColor: methodColor }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.methodBadgeText, children: method }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.statusBadge, { backgroundColor: statusBadge.bg }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.statusBadgeText, { color: statusBadge.textColor }], children: statusBadge.label }) }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.durationText, children: item.duration !== undefined ? `${item.duration}ms` : "--" })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.endpointRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.fullModalEndpointText, numberOfLines: 3, children: item.endpoint || item.url || "/" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.fullUrl || item.url || item.endpoint, `modal_url_${item.id}`), style: styles.copySmallButton, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `modal_url_${item.id}` ? "check" : "content-copy", size: 14, color: copiedKey === `modal_url_${item.id}` ? "#10B981" : "#64748B" }), copiedKey === `modal_url_${item.id}` && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.copiedInlineText, children: "Copiado" }))] })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setFullScreenVisible(false), style: styles.closeRoundButton, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "times", size: 14, color: "#0F172A" }) })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalBody, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.modalTabsRow, children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsButtonGroup, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("response"), style: [styles.tabButton, styles.modalTabButton, tab === "response" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "response" && styles.tabButtonTextActive], children: "Resposta" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("request"), style: [styles.tabButton, styles.modalTabButton, tab === "request" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "request" && styles.tabButtonTextActive], children: "Payload / Params" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("headers"), style: [styles.tabButton, styles.modalTabButton, tab === "headers" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive], children: "Headers" }) })] }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.fullCodeWrapper, children: renderCodeViewer(true) })] })] }) })] }));
 };
 exports.NetworkItemCard = NetworkItemCard;
 const styles = react_native_1.StyleSheet.create({

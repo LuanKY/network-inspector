@@ -29,7 +29,7 @@ No ponto de entrada da sua aplicação (ex: `App.tsx` ou layout raiz):
 ```tsx
 import React from 'react';
 import { View } from 'react-native';
-import { NetworkInspector } from '@luanky/network-inspector';
+import { NetworkInspector } from '@luanky/network-inspector/react-native';
 
 export default function App() {
   return (

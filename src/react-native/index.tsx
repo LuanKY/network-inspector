@@ -32,12 +32,22 @@ export const NetworkInspector: React.FC = () => {
     const [filterMethod, setFilterMethod] = useState<string>("TODOS");
 
     useEffect(() => {
-        initNetworkLogging();
-        setLogs(getNetworkLogs());
+        let timer: any = null;
         const unsubscribe = subscribeNetworkLogs(() => {
-            setLogs(getNetworkLogs());
+            if (timer) {
+                return;
+            }
+            timer = setTimeout(() => {
+                timer = null;
+                setLogs(getNetworkLogs());
+            }, 80);
         });
-        return unsubscribe;
+        return () => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            unsubscribe();
+        };
     }, []);
 
     useEffect(() => {

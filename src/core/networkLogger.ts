@@ -1,3 +1,6 @@
+declare const __DEV__: boolean | undefined;
+declare const process: any;
+
 export interface NetworkRequestLog {
     id: string;
     label: string;
@@ -22,6 +25,13 @@ type Listener = () => void;
 
 let logs: NetworkRequestLog[] = [];
 const listeners: Set<Listener> = new Set();
+
+const SYM_ID = Symbol("__ni_id");
+const SYM_METHOD = Symbol("__ni_method");
+const SYM_URL = Symbol("__ni_url");
+const SYM_HEADERS = Symbol("__ni_headers");
+const SYM_COMPLETED = Symbol("__ni_completed");
+const SYM_START_TIME = Symbol("__ni_start_time");
 
 function notify() {
     listeners.forEach((listener) => {
@@ -101,6 +111,58 @@ export function parseUrlParts(rawUrl: string) {
     };
 }
 
+function parseHeaders(headers: any): Record<string, string> {
+    const result: Record<string, string> = {};
+    if (!headers) {
+        return result;
+    }
+    try {
+        if (typeof headers.forEach === "function") {
+            headers.forEach((val: any, key: string) => {
+                if (key) {
+                    result[key] = String(val);
+                }
+            });
+        } else if (Array.isArray(headers)) {
+            headers.forEach((item) => {
+                if (Array.isArray(item) && item[0]) {
+                    result[item[0]] = String(item[1] ?? "");
+                }
+            });
+        } else if (typeof headers === "object") {
+            Object.keys(headers).forEach((key) => {
+                result[key] = String(headers[key]);
+            });
+        }
+    } catch {}
+    return result;
+}
+
+function parseBody(data: any): any {
+    if (data === undefined || data === null) {
+        return undefined;
+    }
+    if (typeof data === "string") {
+        try {
+            return JSON.parse(data);
+        } catch {
+            return data;
+        }
+    }
+    try {
+        if (typeof FormData !== "undefined" && data instanceof FormData) {
+            return "[FormData]";
+        }
+        if (typeof Blob !== "undefined" && data instanceof Blob) {
+            return `[Blob: ${data.size} bytes]`;
+        }
+        if (typeof ArrayBuffer !== "undefined" && data instanceof ArrayBuffer) {
+            return `[ArrayBuffer: ${data.byteLength} bytes]`;
+        }
+    } catch {}
+    return data;
+}
+
 export function initNetworkLogging(options?: { enabled?: boolean }) {
     const isDev = typeof __DEV__ !== "undefined"
         ? __DEV__
@@ -123,39 +185,39 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
         const originalSetRequestHeader = XHR.prototype.setRequestHeader;
 
         XHR.prototype.open = function (method: string, url: string) {
-            this._networkId = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-            this._method = (method || "GET").toUpperCase();
-            this._url = url || "";
-            this._headers = {};
-            this._completed = false;
+            try {
+                this[SYM_ID] = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+                this[SYM_METHOD] = (method || "GET").toUpperCase();
+                this[SYM_URL] = typeof url === "string" ? url : String(url || "");
+                this[SYM_HEADERS] = {};
+                this[SYM_COMPLETED] = false;
+            } catch {}
             return originalOpen.apply(this, arguments as any);
         };
 
         XHR.prototype.setRequestHeader = function (header: string, value: string) {
-            if (!this._headers) {
-                this._headers = {};
-            }
-            this._headers[header] = value;
+            try {
+                if (!this[SYM_HEADERS]) {
+                    this[SYM_HEADERS] = {};
+                }
+                this[SYM_HEADERS][header] = value;
+            } catch {}
             return originalSetRequestHeader.apply(this, arguments as any);
         };
 
         XHR.prototype.send = function (data: any) {
-            const id = this._networkId || `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-            this._networkId = id;
+            const id = this[SYM_ID] || `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            this[SYM_ID] = id;
+            this[SYM_START_TIME] = Date.now();
 
-            const method = (this._method || (this as any)._method || "GET").toUpperCase();
-            const rawUrl = this._url || (this as any)._url || "";
+            const method = this[SYM_METHOD] || "GET";
+            const rawUrl = this[SYM_URL] || "";
             const now = new Date();
             const timeFormatted = now.toTimeString().split(" ")[0];
 
             const { endpoint, baseUrl, queryParams } = parseUrlParts(rawUrl);
-
-            let parsedData = data;
-            if (typeof data === "string") {
-                try {
-                    parsedData = JSON.parse(data);
-                } catch {}
-            }
+            const headers = parseHeaders(this[SYM_HEADERS]);
+            const requestData = parseBody(data);
 
             const logItem: NetworkRequestLog = {
                 id,
@@ -168,57 +230,79 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
                 timeFormatted,
                 state: "pending",
                 queryParams,
-                requestData: parsedData,
-                headers: this._headers || {},
+                requestData,
+                headers,
             };
 
-            addNetworkLog(logItem);
-
-            const startTime = Date.now();
+            try {
+                addNetworkLog(logItem);
+            } catch {}
 
             const handleFinish = () => {
-                if (this._completed) {
+                if (this[SYM_COMPLETED]) {
                     return;
                 }
-                this._completed = true;
+                this[SYM_COMPLETED] = true;
 
-                const duration = Date.now() - startTime;
-                const status = typeof this.status === "number" ? this.status : 0;
+                try {
+                    const startTime = this[SYM_START_TIME] || Date.now();
+                    const duration = Date.now() - startTime;
+                    const status = typeof this.status === "number" ? this.status : 0;
 
-                let responseData: any = this.response;
-                if (responseData === undefined || responseData === null || responseData === "") {
-                    responseData = (this as any)._response || this.responseText;
-                }
-
-                if (typeof responseData === "string") {
+                    let responseData: any = undefined;
                     try {
-                        responseData = JSON.parse(responseData);
-                    } catch {}
-                }
+                        const type = this.responseType || "";
+                        if (type === "" || type === "text") {
+                            responseData = this.responseText;
+                        } else if (type === "json") {
+                            responseData = this.response;
+                        } else if (type === "blob") {
+                            responseData = `[Blob: ${this.response?.size || 0} bytes]`;
+                        } else if (type === "arraybuffer") {
+                            responseData = `[ArrayBuffer: ${this.response?.byteLength || 0} bytes]`;
+                        } else {
+                            responseData = this.response;
+                        }
+                    } catch {
+                        try {
+                            responseData = this.response;
+                        } catch {}
+                    }
 
-                const isSuccess = status >= 200 && status < 400;
+                    if (typeof responseData === "string") {
+                        try {
+                            responseData = JSON.parse(responseData);
+                        } catch {}
+                    }
 
-                updateNetworkLog(id, {
-                    status,
-                    duration,
-                    state: isSuccess ? "success" : "error",
-                    responseData: isSuccess ? responseData : undefined,
-                    errorData: !isSuccess ? responseData : undefined,
-                    errorMessage: !isSuccess ? (this.statusText || `Status ${status}`) : undefined,
-                });
+                    const isSuccess = status >= 200 && status < 400;
+
+                    updateNetworkLog(id, {
+                        status,
+                        duration,
+                        state: isSuccess ? "success" : "error",
+                        responseData: isSuccess ? responseData : undefined,
+                        errorData: !isSuccess ? responseData : undefined,
+                        errorMessage: !isSuccess ? (this.statusText || `Status ${status}`) : undefined,
+                    });
+                } catch {}
             };
 
-            if (typeof this.addEventListener === "function") {
-                this.addEventListener("loadend", handleFinish);
-                this.addEventListener("error", handleFinish);
-                this.addEventListener("timeout", handleFinish);
-                this.addEventListener("abort", handleFinish);
-            }
+            try {
+                if (typeof this.addEventListener === "function") {
+                    this.addEventListener("loadend", handleFinish);
+                    this.addEventListener("error", handleFinish);
+                    this.addEventListener("timeout", handleFinish);
+                    this.addEventListener("abort", handleFinish);
+                }
+            } catch {}
 
             const originalOnReadyStateChange = this.onreadystatechange;
             this.onreadystatechange = function () {
                 if (this.readyState === 4) {
-                    handleFinish();
+                    try {
+                        handleFinish();
+                    } catch {}
                 }
                 if (typeof originalOnReadyStateChange === "function") {
                     return originalOnReadyStateChange.apply(this, arguments as any);
@@ -233,21 +317,44 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
         const originalFetch = globalObj.fetch;
 
         globalObj.fetch = async function (...args: any[]) {
-            const rawUrl = typeof args[0] === "string" ? args[0] : (args[0]?.url || "");
-            const init = args[1] || {};
-            const method = (init.method || "GET").toUpperCase();
+            let rawUrl = "";
+            let method = "GET";
+            let headers: Record<string, string> = {};
+            let bodyData: any = undefined;
+
+            try {
+                const input = args[0];
+                const init = args[1] || {};
+
+                if (typeof input === "string") {
+                    rawUrl = input;
+                } else if (input && typeof input === "object") {
+                    rawUrl = input.url || "";
+                    if (input.method) {
+                        method = input.method;
+                    }
+                    if (input.headers) {
+                        headers = parseHeaders(input.headers);
+                    }
+                }
+
+                if (init.method) {
+                    method = init.method;
+                }
+                if (init.headers) {
+                    headers = { ...headers, ...parseHeaders(init.headers) };
+                }
+                if (init.body !== undefined) {
+                    bodyData = init.body;
+                }
+            } catch {}
+
+            method = (method || "GET").toUpperCase();
             const id = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
             const now = new Date();
             const timeFormatted = now.toTimeString().split(" ")[0];
-
             const { endpoint, baseUrl, queryParams } = parseUrlParts(rawUrl);
-
-            let parsedBody = init.body;
-            if (typeof init.body === "string") {
-                try {
-                    parsedBody = JSON.parse(init.body);
-                } catch {}
-            }
+            const requestData = parseBody(bodyData);
 
             const logItem: NetworkRequestLog = {
                 id,
@@ -260,11 +367,14 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
                 timeFormatted,
                 state: "pending",
                 queryParams,
-                requestData: parsedBody,
-                headers: init.headers || {},
+                requestData,
+                headers,
             };
 
-            addNetworkLog(logItem);
+            try {
+                addNetworkLog(logItem);
+            } catch {}
+
             const startTime = Date.now();
 
             try {
@@ -273,38 +383,43 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
                 const status = response.status;
                 const isSuccess = status >= 200 && status < 400;
 
-                const cloned = response.clone();
-                cloned.text().then((text: string) => {
-                    let parsedResponse: any = text;
+                (async () => {
                     try {
-                        parsedResponse = JSON.parse(text);
-                    } catch {}
+                        const cloned = response.clone();
+                        const text = await cloned.text();
+                        let parsedResponse: any = text;
+                        try {
+                            parsedResponse = JSON.parse(text);
+                        } catch {}
 
-                    updateNetworkLog(id, {
-                        status,
-                        duration,
-                        state: isSuccess ? "success" : "error",
-                        responseData: isSuccess ? parsedResponse : undefined,
-                        errorData: !isSuccess ? parsedResponse : undefined,
-                        errorMessage: !isSuccess ? (response.statusText || `Status ${status}`) : undefined,
-                    });
-                }).catch(() => {
-                    updateNetworkLog(id, {
-                        status,
-                        duration,
-                        state: isSuccess ? "success" : "error",
-                        errorMessage: !isSuccess ? (response.statusText || `Status ${status}`) : undefined,
-                    });
-                });
+                        updateNetworkLog(id, {
+                            status,
+                            duration,
+                            state: isSuccess ? "success" : "error",
+                            responseData: isSuccess ? parsedResponse : undefined,
+                            errorData: !isSuccess ? parsedResponse : undefined,
+                            errorMessage: !isSuccess ? (response.statusText || `Status ${status}`) : undefined,
+                        });
+                    } catch {
+                        updateNetworkLog(id, {
+                            status,
+                            duration,
+                            state: isSuccess ? "success" : "error",
+                            errorMessage: !isSuccess ? (response.statusText || `Status ${status}`) : undefined,
+                        });
+                    }
+                })();
 
                 return response;
             } catch (error: any) {
-                const duration = Date.now() - startTime;
-                updateNetworkLog(id, {
-                    duration,
-                    state: "error",
-                    errorMessage: error?.message || "Falha na requisição",
-                });
+                try {
+                    const duration = Date.now() - startTime;
+                    updateNetworkLog(id, {
+                        duration,
+                        state: "error",
+                        errorMessage: error?.message || "Falha na requisição",
+                    });
+                } catch {}
                 throw error;
             }
         };

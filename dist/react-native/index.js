@@ -10,28 +10,6 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
@@ -40,8 +18,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetworkInspector = void 0;
+const jsx_runtime_1 = require("react/jsx-runtime");
 const vector_icons_1 = require("@expo/vector-icons");
-const react_1 = __importStar(require("react"));
+const react_1 = require("react");
 const react_native_1 = require("react-native");
 const react_native_safe_area_context_1 = require("react-native-safe-area-context");
 const networkLogger_1 = require("../core/networkLogger");
@@ -55,12 +34,22 @@ const NetworkInspector = () => {
     const [search, setSearch] = (0, react_1.useState)("");
     const [filterMethod, setFilterMethod] = (0, react_1.useState)("TODOS");
     (0, react_1.useEffect)(() => {
-        (0, networkLogger_1.initNetworkLogging)();
-        setLogs((0, networkLogger_1.getNetworkLogs)());
+        let timer = null;
         const unsubscribe = (0, networkLogger_1.subscribeNetworkLogs)(() => {
-            setLogs((0, networkLogger_1.getNetworkLogs)());
+            if (timer) {
+                return;
+            }
+            timer = setTimeout(() => {
+                timer = null;
+                setLogs((0, networkLogger_1.getNetworkLogs)());
+            }, 80);
         });
-        return unsubscribe;
+        return () => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            unsubscribe();
+        };
     }, []);
     (0, react_1.useEffect)(() => {
         if (visible) {
@@ -81,103 +70,22 @@ const NetworkInspector = () => {
     }, [logs, search, filterMethod]);
     const paddingTop = Math.max(insets.top, 24);
     const paddingBottom = Math.max(insets.bottom, 12);
-    return (<>
-            <react_native_1.View style={styles.floatingButtonContainer} pointerEvents="box-none">
-                <react_native_1.TouchableOpacity activeOpacity={0.85} onPress={() => setVisible(true)} style={styles.floatingButton}>
-                    <vector_icons_1.FontAwesome5 name="network-wired" size={14} color="#FFFFFF"/>
-                    <react_native_1.Text style={styles.floatingButtonText}>
-                        Rede
-                    </react_native_1.Text>
-                    {logs.length > 0 && (<react_native_1.View style={styles.floatingBadge}>
-                            <react_native_1.Text style={styles.floatingBadgeText}>
-                                {logs.length}
-                            </react_native_1.Text>
-                        </react_native_1.View>)}
-                </react_native_1.TouchableOpacity>
-            </react_native_1.View>
-
-            <react_native_1.Modal visible={visible} animationType="slide" onRequestClose={() => setVisible(false)}>
-                <react_native_1.View style={[
-            styles.modalRoot,
-            {
-                paddingTop,
-                paddingBottom,
-            },
-        ]}>
-                    <react_native_1.StatusBar barStyle="dark-content"/>
-
-                    <react_native_1.View style={styles.headerContainer}>
-                        <react_native_1.View style={styles.headerTopRow}>
-                            <react_native_1.View style={styles.headerTitleRow}>
-                                <react_native_1.View style={styles.iconCircle}>
-                                    <vector_icons_1.FontAwesome5 name="network-wired" size={15} color="#6366F1"/>
-                                </react_native_1.View>
-                                <react_native_1.Text style={styles.headerTitle}>
-                                    Monitor de Rede
-                                </react_native_1.Text>
-                                <react_native_1.View style={styles.counterBadge}>
-                                    <react_native_1.Text style={styles.counterBadgeText}>
-                                        {filteredLogs.length}
-                                    </react_native_1.Text>
-                                </react_native_1.View>
-                            </react_native_1.View>
-
-                            <react_native_1.TouchableOpacity onPress={() => setVisible(false)} style={styles.closeButton}>
-                                <vector_icons_1.FontAwesome5 name="times" size={14} color="#475569"/>
-                            </react_native_1.TouchableOpacity>
-                        </react_native_1.View>
-
-                        <react_native_1.View style={styles.searchWrapper}>
-                            <react_native_1.View style={styles.searchBox}>
-                                <vector_icons_1.MaterialCommunityIcons name="magnify" size={20} color="#6366F1"/>
-                                <react_native_1.TextInput value={search} onChangeText={setSearch} placeholder="Filtrar por endpoint ou status..." placeholderTextColor="#94A3B8" style={styles.searchInput}/>
-                                {search.length > 0 && (<react_native_1.TouchableOpacity onPress={() => setSearch("")}>
-                                        <vector_icons_1.FontAwesome5 name="times-circle" size={15} color="#94A3B8"/>
-                                    </react_native_1.TouchableOpacity>)}
-                            </react_native_1.View>
-                        </react_native_1.View>
-
-                        <react_native_1.View style={styles.filterActionsRow}>
-                            <react_native_1.ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent} style={styles.filterScroll}>
-                                {["TODOS", "ERROS", "GET", "POST", "PUT", "PATCH", "DELETE"].map((method) => {
-            const selected = filterMethod === method;
-            return (<react_native_1.TouchableOpacity key={method} onPress={() => setFilterMethod(method)} style={[
-                    styles.methodPill,
-                    selected && styles.methodPillActive,
-                ]}>
-                                            <react_native_1.Text style={[
-                    styles.methodPillText,
-                    selected && styles.methodPillTextActive,
-                ]}>
-                                                {method}
-                                            </react_native_1.Text>
-                                        </react_native_1.TouchableOpacity>);
-        })}
-                            </react_native_1.ScrollView>
-
-                            <react_native_1.TouchableOpacity onPress={networkLogger_1.clearNetworkLogs} style={styles.clearButton}>
-                                <vector_icons_1.MaterialCommunityIcons name="trash-can-outline" size={15} color="#DC2626"/>
-                                <react_native_1.Text style={styles.clearButtonText}>
-                                    Limpar
-                                </react_native_1.Text>
-                            </react_native_1.TouchableOpacity>
-                        </react_native_1.View>
-                    </react_native_1.View>
-
-                    <react_native_1.FlatList data={filteredLogs} keyExtractor={(item) => item.id} renderItem={({ item }) => <NetworkItemCard_1.default item={item}/>} contentContainerStyle={styles.listContent} style={styles.list} ListEmptyComponent={<react_native_1.View style={styles.emptyContainer}>
-                                <react_native_1.View style={styles.emptyIconCircle}>
-                                    <vector_icons_1.MaterialCommunityIcons name="wifi-arrow-up-down" size={38} color="#6366F1"/>
-                                </react_native_1.View>
-                                <react_native_1.Text style={styles.emptyTitle}>
-                                    Nenhuma requisição encontrada
-                                </react_native_1.Text>
-                                <react_native_1.Text style={styles.emptyDescription}>
-                                    As requisições feitas pelo aplicativo aparecerão aqui automaticamente.
-                                </react_native_1.Text>
-                            </react_native_1.View>}/>
-                </react_native_1.View>
-            </react_native_1.Modal>
-        </>);
+    return ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.floatingButtonContainer, pointerEvents: "box-none", children: (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { activeOpacity: 0.85, onPress: () => setVisible(true), style: styles.floatingButton, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "network-wired", size: 14, color: "#FFFFFF" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.floatingButtonText, children: "Rede" }), logs.length > 0 && ((0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.floatingBadge, children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.floatingBadgeText, children: logs.length }) }))] }) }), (0, jsx_runtime_1.jsx)(react_native_1.Modal, { visible: visible, animationType: "slide", onRequestClose: () => setVisible(false), children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: [
+                        styles.modalRoot,
+                        {
+                            paddingTop,
+                            paddingBottom,
+                        },
+                    ], children: [(0, jsx_runtime_1.jsx)(react_native_1.StatusBar, { barStyle: "dark-content" }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.headerContainer, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.headerTopRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.headerTitleRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.iconCircle, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "network-wired", size: 15, color: "#6366F1" }) }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.headerTitle, children: "Monitor de Rede" }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.counterBadge, children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.counterBadgeText, children: filteredLogs.length }) })] }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setVisible(false), style: styles.closeButton, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "times", size: 14, color: "#475569" }) })] }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.searchWrapper, children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.searchBox, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: "magnify", size: 20, color: "#6366F1" }), (0, jsx_runtime_1.jsx)(react_native_1.TextInput, { value: search, onChangeText: setSearch, placeholder: "Filtrar por endpoint ou status...", placeholderTextColor: "#94A3B8", style: styles.searchInput }), search.length > 0 && ((0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setSearch(""), children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "times-circle", size: 15, color: "#94A3B8" }) }))] }) }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.filterActionsRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.ScrollView, { horizontal: true, showsHorizontalScrollIndicator: false, contentContainerStyle: styles.filterScrollContent, style: styles.filterScroll, children: ["TODOS", "ERROS", "GET", "POST", "PUT", "PATCH", "DELETE"].map((method) => {
+                                                const selected = filterMethod === method;
+                                                return ((0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setFilterMethod(method), style: [
+                                                        styles.methodPill,
+                                                        selected && styles.methodPillActive,
+                                                    ], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                            styles.methodPillText,
+                                                            selected && styles.methodPillTextActive,
+                                                        ], children: method }) }, method));
+                                            }) }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: networkLogger_1.clearNetworkLogs, style: styles.clearButton, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: "trash-can-outline", size: 15, color: "#DC2626" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.clearButtonText, children: "Limpar" })] })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.FlatList, { data: filteredLogs, keyExtractor: (item) => item.id, renderItem: ({ item }) => (0, jsx_runtime_1.jsx)(NetworkItemCard_1.default, { item: item }), contentContainerStyle: styles.listContent, style: styles.list, ListEmptyComponent: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.emptyContainer, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.emptyIconCircle, children: (0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: "wifi-arrow-up-down", size: 38, color: "#6366F1" }) }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.emptyTitle, children: "Nenhuma requisi\u00E7\u00E3o encontrada" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.emptyDescription, children: "As requisi\u00E7\u00F5es feitas pelo aplicativo aparecer\u00E3o aqui automaticamente." })] }) })] }) })] }));
 };
 exports.NetworkInspector = NetworkInspector;
 const styles = react_native_1.StyleSheet.create({
