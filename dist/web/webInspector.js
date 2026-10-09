@@ -575,9 +575,47 @@ function initWebNetworkInspector(options) {
         }
         return parts.join(" \\\n");
     }
-    function copyToClipboard(text, key) {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).catch(() => { });
+    function fallbackCopyTextToClipboard(text) {
+        try {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.width = "2em";
+            textArea.style.height = "2em";
+            textArea.style.padding = "0";
+            textArea.style.border = "none";
+            textArea.style.outline = "none";
+            textArea.style.boxShadow = "none";
+            textArea.style.background = "transparent";
+            textArea.style.opacity = "0";
+            textArea.setAttribute("readonly", "");
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, text.length);
+            const successful = document.execCommand("copy");
+            document.body.removeChild(textArea);
+            return successful;
+        }
+        catch {
+            return false;
+        }
+    }
+    async function copyToClipboard(text, key) {
+        let copied = false;
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+            try {
+                await navigator.clipboard.writeText(text);
+                copied = true;
+            }
+            catch {
+                copied = fallbackCopyTextToClipboard(text);
+            }
+        }
+        else {
+            copied = fallbackCopyTextToClipboard(text);
         }
         copiedKey = key;
         renderListOnly();
@@ -757,7 +795,10 @@ function initWebNetworkInspector(options) {
                 const isCopied = copiedKey === `res_${item.id}`;
                 copyBtn.className = `code-copy-btn ${isCopied ? "copied" : ""}`;
                 copyBtn.innerHTML = `${isCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isCopied ? "Copiado" : "Copiar"}</span>`;
-                copyBtn.onclick = () => copyToClipboard(responseStr, `res_${item.id}`);
+                copyBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(responseStr, `res_${item.id}`);
+                };
                 cHeader.appendChild(copyBtn);
             }
             codeContainer.appendChild(cHeader);
@@ -786,7 +827,10 @@ function initWebNetworkInspector(options) {
                 const isQCopied = copiedKey === `query_${item.id}`;
                 copyQBtn.className = `code-copy-btn ${isQCopied ? "copied" : ""}`;
                 copyQBtn.innerHTML = `${isQCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isQCopied ? "Copiado" : "Copiar"}</span>`;
-                copyQBtn.onclick = () => copyToClipboard(qStr, `query_${item.id}`);
+                copyQBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(qStr, `query_${item.id}`);
+                };
                 qHeader.appendChild(copyQBtn);
                 codeContainer.appendChild(qHeader);
                 const preQ = document.createElement("pre");
@@ -804,7 +848,10 @@ function initWebNetworkInspector(options) {
                 const isBCopied = copiedKey === `body_${item.id}`;
                 copyBBtn.className = `code-copy-btn ${isBCopied ? "copied" : ""}`;
                 copyBBtn.innerHTML = `${isBCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isBCopied ? "Copiado" : "Copiar"}</span>`;
-                copyBBtn.onclick = () => copyToClipboard(bodyStr, `body_${item.id}`);
+                copyBBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(bodyStr, `body_${item.id}`);
+                };
                 bHeader.appendChild(copyBBtn);
                 codeContainer.appendChild(bHeader);
                 const preB = document.createElement("pre");
@@ -829,7 +876,10 @@ function initWebNetworkInspector(options) {
                 const isHCopied = copiedKey === `headers_${item.id}`;
                 copyHBtn.className = `code-copy-btn ${isHCopied ? "copied" : ""}`;
                 copyHBtn.innerHTML = `${isHCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isHCopied ? "Copiado" : "Copiar"}</span>`;
-                copyHBtn.onclick = () => copyToClipboard(headersStr, `headers_${item.id}`);
+                copyHBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(headersStr, `headers_${item.id}`);
+                };
                 hHeader.appendChild(copyHBtn);
             }
             codeContainer.appendChild(hHeader);
@@ -855,7 +905,10 @@ function initWebNetworkInspector(options) {
             const isCurlCopied = copiedKey === `curl_${item.id}`;
             copyCurlBtn.className = `code-copy-btn ${isCurlCopied ? "copied" : ""}`;
             copyCurlBtn.innerHTML = `${isCurlCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isCurlCopied ? "Copiado" : "Copiar cURL"}</span>`;
-            copyCurlBtn.onclick = () => copyToClipboard(curlStr, `curl_${item.id}`);
+            copyCurlBtn.onclick = (e) => {
+                e.stopPropagation();
+                copyToClipboard(curlStr, `curl_${item.id}`);
+            };
             cHeader.appendChild(copyCurlBtn);
             codeContainer.appendChild(cHeader);
             const preCurl = document.createElement("pre");

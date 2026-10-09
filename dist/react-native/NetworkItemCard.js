@@ -81,15 +81,26 @@ const NetworkItemCard = ({ item }) => {
     const handleCopy = async (text, key) => {
         try {
             const clipboardModuleName = ["expo", "clipboard"].join("-");
-            let clipboardLib = null;
+            let copied = false;
             try {
-                clipboardLib = require(clipboardModuleName);
+                const clipboardLib = require(clipboardModuleName);
+                if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
+                    await clipboardLib.setStringAsync(text);
+                    copied = true;
+                }
             }
             catch { }
-            if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
-                await clipboardLib.setStringAsync(text);
+            if (!copied) {
+                try {
+                    const rncLib = require("@react-native-clipboard/clipboard");
+                    if (rncLib && typeof rncLib.setString === "function") {
+                        rncLib.setString(text);
+                        copied = true;
+                    }
+                }
+                catch { }
             }
-            else {
+            if (!copied) {
                 await react_native_1.Share.share({ message: text });
             }
             setCopiedKey(key);

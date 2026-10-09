@@ -89,14 +89,26 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
     const handleCopy = async (text: string, key: string) => {
         try {
             const clipboardModuleName = ["expo", "clipboard"].join("-");
-            let clipboardLib: any = null;
+            let copied = false;
             try {
-                clipboardLib = require(clipboardModuleName);
+                const clipboardLib = require(clipboardModuleName);
+                if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
+                    await clipboardLib.setStringAsync(text);
+                    copied = true;
+                }
             } catch {}
 
-            if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
-                await clipboardLib.setStringAsync(text);
-            } else {
+            if (!copied) {
+                try {
+                    const rncLib = require("@react-native-clipboard/clipboard");
+                    if (rncLib && typeof rncLib.setString === "function") {
+                        rncLib.setString(text);
+                        copied = true;
+                    }
+                } catch {}
+            }
+
+            if (!copied) {
                 await Share.share({ message: text });
             }
 
