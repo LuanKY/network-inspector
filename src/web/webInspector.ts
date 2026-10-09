@@ -19,12 +19,16 @@ const ICONS = {
         `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;cursor:pointer;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
     trash: (color = "#DC2626", size = 14) =>
         `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
-    wifiArrows: (color = "#6366F1", size = 38) =>
-        `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;flex-shrink:0;"><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M5 13a11 11 0 0 1 14 0"/><path d="M8.5 17a6 6 0 0 1 7 0"/><path d="M12 20h.01"/><path d="M7 2v5M4 4.5 7 2l3 2.5"/><path d="M17 7V2m-3 2.5 3 2.5 3-2.5"/></svg>`,
+    wifiArrows: (color = "#6366F1", size = 44) =>
+        `<svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" style="display:inline-block;flex-shrink:0;"><path d="M12 28C15.5 24.5 20.5 22.5 24 22.5C27.5 22.5 32.5 24.5 36 28" stroke="${color}" stroke-width="3" stroke-linecap="round"/><path d="M6 22C11 17 17 14.5 24 14.5C31 14.5 37 17 42 22" stroke="${color}" stroke-opacity="0.6" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="35" r="3.5" fill="${color}"/><path d="M10 11L10 3M7 6L10 3L13 6" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M38 3L38 11M35 8L38 11L41 8" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     copy: (color = "currentColor", size = 12) =>
         `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
     check: (color = "#10B981", size = 12) =>
         `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>`,
+    maximize: (color = "currentColor", size = 13) =>
+        `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`,
+    minimize: (color = "currentColor", size = 13) =>
+        `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>`,
 };
 
 export function initWebNetworkInspector(options?: { enabled?: boolean }) {
@@ -56,10 +60,11 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
     const shadow = host.attachShadow({ mode: "open" });
 
     let isModalOpen = false;
+    let fullScreenItemId: string | null = null;
     let searchQuery = "";
     let activeFilter = "TODOS";
     let expandedId: string | null = null;
-    let activeTabMap: Record<string, "response" | "request" | "headers"> = {};
+    let activeTabMap: Record<string, "response" | "request" | "headers" | "curl"> = {};
     let copiedKey: string | null = null;
 
     const styleEl = document.createElement("style");
@@ -86,7 +91,7 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             font-weight: 700;
             user-select: none;
             transition: transform 0.15s ease, background 0.15s ease;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
         }
         .floating-btn:hover {
             background: #334155;
@@ -116,20 +121,20 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         }
         .modal-card {
             background: #F8FAFC;
-            width: 100%;
-            max-width: 900px;
-            height: 85vh;
+            width: 94vw;
+            max-width: 1200px;
+            height: 90vh;
             border-radius: 16px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
             border: 1px solid #E2E8F0;
         }
         .modal-header {
             background: #FFFFFF;
             border-bottom: 1px solid #E2E8F0;
-            padding: 14px 18px;
+            padding: 14px 20px;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -190,7 +195,7 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             background: #F8FAFC;
             border: 1px solid #E2E8F0;
             border-radius: 8px;
-            padding: 6px 12px;
+            padding: 7px 12px;
             gap: 8px;
         }
         .search-input {
@@ -252,10 +257,10 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         .logs-list {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 20px 24px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
         .log-card {
             background: #FFFFFF;
@@ -264,13 +269,21 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            flex-shrink: 0;
+            min-height: fit-content;
+        }
+        .log-card.expanded {
+            border-color: #CBD5E1;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
         }
         .log-card-header {
-            padding: 14px;
+            padding: 16px 20px;
             cursor: pointer;
             user-select: none;
             transition: background 0.1s ease;
+            flex-shrink: 0;
         }
         .log-card-header:hover {
             background: #F8FAFC;
@@ -333,16 +346,22 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             background: #F8FAFC;
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
+        }
+        .tabs-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #FFFFFF;
+            border-bottom: 1px solid #E2E8F0;
+            padding-right: 8px;
         }
         .tabs-header {
             display: flex;
-            border-bottom: 1px solid #E2E8F0;
-            background: #FFFFFF;
+            flex: 1;
         }
         .tab-btn {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
+            padding: 10px 16px;
             font-size: 12px;
             font-weight: 700;
             color: #64748B;
@@ -357,49 +376,92 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             border-bottom-color: #6366F1;
             background: #EEF2FF;
         }
+        .fullscreen-toggle-btn {
+            background: #F1F5F9;
+            border: 1px solid #E2E8F0;
+            color: #475569;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .fullscreen-toggle-btn:hover {
+            background: #E2E8F0;
+        }
         .tab-content {
-            padding: 14px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
         .code-container {
             background: #0F172A;
-            border-radius: 8px;
-            padding: 12px;
+            border: 1px solid #1E293B;
+            border-radius: 10px;
+            padding: 16px;
             color: #E2E8F0;
-            font-size: 12px;
-            line-height: 1.5;
-            max-height: 280px;
-            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            height: 340px;
+            overflow: auto;
             position: relative;
+        }
+        .code-container.fullscreen-viewer {
+            height: calc(88vh - 140px);
+            max-height: none;
+        }
+        .code-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .code-container::-webkit-scrollbar-track {
+            background: #0F172A;
+            border-radius: 4px;
+        }
+        .code-container::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .code-container::-webkit-scrollbar-thumb:hover {
+            background: #475569;
         }
         .code-header-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #1E293B;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
         }
         .code-header-title {
             color: #94A3B8;
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .code-actions-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .code-copy-btn {
             background: #1E293B;
             border: 1px solid #334155;
             color: #94A3B8;
-            padding: 4px 8px;
-            border-radius: 5px;
-            font-size: 10px;
+            padding: 4px 9px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
             transition: all 0.15s ease;
         }
         .code-copy-btn:hover {
@@ -413,7 +475,7 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         .error-banner {
             background: #7F1D1D;
             color: #FCA5A5;
-            padding: 8px 10px;
+            padding: 8px 12px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: 700;
@@ -423,30 +485,64 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         }
         .code-text-pre {
             margin: 0;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            white-space: pre-wrap;
-            word-break: break-all;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            white-space: pre;
+            word-break: normal;
             user-select: text;
+        }
+        .empty-content-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 36px 16px;
+            color: #94A3B8;
+            font-size: 13px;
+            font-weight: 500;
         }
         .empty-state {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 48px 16px;
+            padding: 60px 16px;
             color: #64748B;
-            gap: 6px;
+            gap: 8px;
             text-align: center;
         }
         .empty-icon-circle {
-            width: 68px;
-            height: 68px;
-            border-radius: 34px;
+            width: 76px;
+            height: 76px;
+            border-radius: 38px;
             background: #EEF2FF;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+        }
+        .fullview-modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.75);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2147483647;
+            padding: 16px;
+        }
+        .fullview-card {
+            background: #F8FAFC;
+            width: 95vw;
+            max-width: 1200px;
+            height: 92vh;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            border: 1px solid #E2E8F0;
         }
     `;
     shadow.appendChild(styleEl);
@@ -478,9 +574,9 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         return { bg: "#FFE4E6", color: "#BE123C", label: `${status || "ERRO"}` };
     }
 
-    function formatData(data: any) {
+    function formatData(data: any): string {
         if (data === undefined || data === null || data === "") {
-            return "Nenhum dado retornado";
+            return "";
         }
         if (typeof data === "string") {
             return data;
@@ -490,6 +586,21 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         } catch {
             return String(data);
         }
+    }
+
+    function generateCurl(item: NetworkRequestLog): string {
+        const fullUrl = item.fullUrl || item.url || "";
+        const parts = [`curl -X ${item.method || "GET"} "${fullUrl}"`];
+        if (item.headers) {
+            Object.keys(item.headers).forEach((key) => {
+                parts.push(`  -H "${key}: ${item.headers[key]}"`);
+            });
+        }
+        if (item.requestData !== undefined && item.requestData !== null && item.requestData !== "") {
+            const bodyStr = typeof item.requestData === "object" ? JSON.stringify(item.requestData) : String(item.requestData);
+            parts.push(`  --data '${bodyStr.replace(/'/g, "'\\''")}'`);
+        }
+        return parts.join(" \\\n");
     }
 
     function copyToClipboard(text: string, key: string) {
@@ -560,6 +671,17 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
     backdrop.appendChild(card);
     rootContainer.appendChild(backdrop);
 
+    const fullModalBackdrop = document.createElement("div");
+    fullModalBackdrop.className = "fullview-modal-backdrop";
+    fullModalBackdrop.onclick = (e) => {
+        if (e.target === fullModalBackdrop) {
+            fullScreenItemId = null;
+            updateModalVisibility();
+            renderListOnly();
+        }
+    };
+    rootContainer.appendChild(fullModalBackdrop);
+
     const counterBadge = header.querySelector("#modal-counter-badge") as HTMLElement;
     const closeBtn = header.querySelector("#btn-close-modal") as HTMLButtonElement;
     closeBtn.onclick = () => {
@@ -605,7 +727,8 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
     };
 
     function updateModalVisibility() {
-        backdrop.style.display = isModalOpen ? "flex" : "none";
+        backdrop.style.display = isModalOpen && !fullScreenItemId ? "flex" : "none";
+        fullModalBackdrop.style.display = fullScreenItemId ? "flex" : "none";
     }
 
     function renderFloatingButton() {
@@ -617,9 +740,249 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         `;
     }
 
+    function buildItemDetails(item: NetworkRequestLog, isFullScreen: boolean): HTMLElement {
+        const expandedBox = document.createElement("div");
+        expandedBox.className = "expanded-box";
+
+        const tab = activeTabMap[item.id] || "response";
+
+        const tabsHeaderBar = document.createElement("div");
+        tabsHeaderBar.className = "tabs-header-bar";
+
+        const tabsHeader = document.createElement("div");
+        tabsHeader.className = "tabs-header";
+
+        const tabDefs: Array<{ id: "response" | "request" | "headers" | "curl"; label: string }> = [
+            { id: "response", label: "Resposta" },
+            { id: "request", label: "Envio" },
+            { id: "headers", label: "Headers" },
+            { id: "curl", label: "cURL" },
+        ];
+
+        tabDefs.forEach((t) => {
+            const tBtn = document.createElement("button");
+            tBtn.className = `tab-btn ${tab === t.id ? "active" : ""}`;
+            tBtn.textContent = t.label;
+            tBtn.onclick = (e) => {
+                e.stopPropagation();
+                activeTabMap[item.id] = t.id;
+                renderListOnly();
+            };
+            tabsHeader.appendChild(tBtn);
+        });
+        tabsHeaderBar.appendChild(tabsHeader);
+
+        const fullscreenBtn = document.createElement("button");
+        fullscreenBtn.className = "fullscreen-toggle-btn";
+        fullscreenBtn.innerHTML = isFullScreen
+            ? `${ICONS.minimize("#475569", 13)} <span>Restaurar</span>`
+            : `${ICONS.maximize("#475569", 13)} <span>Expandir</span>`;
+        fullscreenBtn.onclick = (e) => {
+            e.stopPropagation();
+            fullScreenItemId = isFullScreen ? null : item.id;
+            updateModalVisibility();
+            renderListOnly();
+        };
+        tabsHeaderBar.appendChild(fullscreenBtn);
+
+        expandedBox.appendChild(tabsHeaderBar);
+
+        const tabContent = document.createElement("div");
+        tabContent.className = "tab-content";
+
+        const codeContainer = document.createElement("div");
+        codeContainer.className = `code-container ${isFullScreen ? "fullscreen-viewer" : ""}`;
+
+        if (tab === "response") {
+            if (item.errorMessage) {
+                const errBanner = document.createElement("div");
+                errBanner.className = "error-banner";
+                errBanner.style.marginBottom = "8px";
+                errBanner.textContent = item.errorMessage;
+                tabContent.appendChild(errBanner);
+            }
+
+            const responsePayload = item.state === "error" ? (item.errorData || item.responseData) : item.responseData;
+            const responseStr = formatData(responsePayload);
+
+            const cHeader = document.createElement("div");
+            cHeader.className = "code-header-row";
+            cHeader.innerHTML = `<span class="code-header-title">Corpo da Resposta</span>`;
+            if (responseStr) {
+                const copyBtn = document.createElement("button");
+                const isCopied = copiedKey === `res_${item.id}`;
+                copyBtn.className = `code-copy-btn ${isCopied ? "copied" : ""}`;
+                copyBtn.innerHTML = `${isCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isCopied ? "Copiado" : "Copiar"}</span>`;
+                copyBtn.onclick = () => copyToClipboard(responseStr, `res_${item.id}`);
+                cHeader.appendChild(copyBtn);
+            }
+            codeContainer.appendChild(cHeader);
+
+            if (responseStr) {
+                const pre = document.createElement("pre");
+                pre.className = "code-text-pre";
+                pre.textContent = responseStr;
+                codeContainer.appendChild(pre);
+            } else {
+                const emptyBox = document.createElement("div");
+                emptyBox.className = "empty-content-box";
+                emptyBox.textContent = item.state === "pending" ? "Aguardando resposta do servidor..." : "Corpo da resposta vazio (204 No Content ou sem conteúdo).";
+                codeContainer.appendChild(emptyBox);
+            }
+        }
+
+        if (tab === "request") {
+            const hasQueryParams = item.queryParams && Object.keys(item.queryParams).length > 0;
+            const hasBodyData = item.requestData !== undefined && item.requestData !== null && item.requestData !== "";
+
+            if (hasQueryParams) {
+                const qStr = formatData(item.queryParams);
+                const qHeader = document.createElement("div");
+                qHeader.className = "code-header-row";
+                qHeader.innerHTML = `<span class="code-header-title">Query Parameters</span>`;
+                const copyQBtn = document.createElement("button");
+                const isQCopied = copiedKey === `query_${item.id}`;
+                copyQBtn.className = `code-copy-btn ${isQCopied ? "copied" : ""}`;
+                copyQBtn.innerHTML = `${isQCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isQCopied ? "Copiado" : "Copiar"}</span>`;
+                copyQBtn.onclick = () => copyToClipboard(qStr, `query_${item.id}`);
+                qHeader.appendChild(copyQBtn);
+                codeContainer.appendChild(qHeader);
+
+                const preQ = document.createElement("pre");
+                preQ.className = "code-text-pre";
+                preQ.style.marginBottom = "14px";
+                preQ.textContent = qStr;
+                codeContainer.appendChild(preQ);
+            }
+
+            if (hasBodyData) {
+                const bodyStr = formatData(item.requestData);
+                const bHeader = document.createElement("div");
+                bHeader.className = "code-header-row";
+                bHeader.innerHTML = `<span class="code-header-title">Payload Enviado</span>`;
+                const copyBBtn = document.createElement("button");
+                const isBCopied = copiedKey === `body_${item.id}`;
+                copyBBtn.className = `code-copy-btn ${isBCopied ? "copied" : ""}`;
+                copyBBtn.innerHTML = `${isBCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isBCopied ? "Copiado" : "Copiar"}</span>`;
+                copyBBtn.onclick = () => copyToClipboard(bodyStr, `body_${item.id}`);
+                bHeader.appendChild(copyBBtn);
+                codeContainer.appendChild(bHeader);
+
+                const preB = document.createElement("pre");
+                preB.className = "code-text-pre";
+                preB.textContent = bodyStr;
+                codeContainer.appendChild(preB);
+            }
+
+            if (!hasQueryParams && !hasBodyData) {
+                const emptyBox = document.createElement("div");
+                emptyBox.className = "empty-content-box";
+                emptyBox.textContent = "Requisição sem corpo ou parâmetros de envio.";
+                codeContainer.appendChild(emptyBox);
+            }
+        }
+
+        if (tab === "headers") {
+            const headersStr = formatData(item.headers);
+            const hHeader = document.createElement("div");
+            hHeader.className = "code-header-row";
+            hHeader.innerHTML = `<span class="code-header-title">Headers da Requisição</span>`;
+            if (headersStr) {
+                const copyHBtn = document.createElement("button");
+                const isHCopied = copiedKey === `headers_${item.id}`;
+                copyHBtn.className = `code-copy-btn ${isHCopied ? "copied" : ""}`;
+                copyHBtn.innerHTML = `${isHCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isHCopied ? "Copiado" : "Copiar"}</span>`;
+                copyHBtn.onclick = () => copyToClipboard(headersStr, `headers_${item.id}`);
+                hHeader.appendChild(copyHBtn);
+            }
+            codeContainer.appendChild(hHeader);
+
+            if (headersStr) {
+                const preH = document.createElement("pre");
+                preH.className = "code-text-pre";
+                preH.textContent = headersStr;
+                codeContainer.appendChild(preH);
+            } else {
+                const emptyBox = document.createElement("div");
+                emptyBox.className = "empty-content-box";
+                emptyBox.textContent = "Nenhum cabeçalho customizado registrado.";
+                codeContainer.appendChild(emptyBox);
+            }
+        }
+
+        if (tab === "curl") {
+            const curlStr = generateCurl(item);
+            const cHeader = document.createElement("div");
+            cHeader.className = "code-header-row";
+            cHeader.innerHTML = `<span class="code-header-title">Comando cURL</span>`;
+            const copyCurlBtn = document.createElement("button");
+            const isCurlCopied = copiedKey === `curl_${item.id}`;
+            copyCurlBtn.className = `code-copy-btn ${isCurlCopied ? "copied" : ""}`;
+            copyCurlBtn.innerHTML = `${isCurlCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isCurlCopied ? "Copiado" : "Copiar cURL"}</span>`;
+            copyCurlBtn.onclick = () => copyToClipboard(curlStr, `curl_${item.id}`);
+            cHeader.appendChild(copyCurlBtn);
+            codeContainer.appendChild(cHeader);
+
+            const preCurl = document.createElement("pre");
+            preCurl.className = "code-text-pre";
+            preCurl.textContent = curlStr;
+            codeContainer.appendChild(preCurl);
+        }
+
+        tabContent.appendChild(codeContainer);
+        expandedBox.appendChild(tabContent);
+        return expandedBox;
+    }
+
     function renderListOnly() {
         const logs = getNetworkLogs();
         renderFloatingButton();
+
+        if (fullScreenItemId) {
+            const targetItem = logs.find((i) => i.id === fullScreenItemId);
+            if (targetItem) {
+                fullModalBackdrop.innerHTML = "";
+                const fullCard = document.createElement("div");
+                fullCard.className = "fullview-card";
+
+                const methodColor = getMethodColor(targetItem.method);
+                const statusBadge = getStatusBadge(targetItem.state, targetItem.status);
+
+                const fHeader = document.createElement("div");
+                fHeader.className = "modal-header";
+                fHeader.innerHTML = `
+                    <div class="header-top">
+                        <div class="header-title-box">
+                            <span class="method-badge" style="background:${methodColor}">${targetItem.method}</span>
+                            <span class="status-badge" style="background:${statusBadge.bg}; color:${statusBadge.color}">${statusBadge.label}</span>
+                            <span class="duration-badge">${targetItem.duration !== undefined ? `${targetItem.duration}ms` : "--"}</span>
+                            <span class="endpoint-text" style="font-size:15px;">${targetItem.endpoint}</span>
+                        </div>
+                        <button class="close-btn" id="btn-close-fullscreen">${ICONS.close("#475569", 14)}</button>
+                    </div>
+                    <div class="base-url-text">${targetItem.baseUrl ? targetItem.baseUrl + targetItem.endpoint : targetItem.url}</div>
+                `;
+                fullCard.appendChild(fHeader);
+
+                const closeFullBtn = fHeader.querySelector("#btn-close-fullscreen") as HTMLButtonElement;
+                closeFullBtn.onclick = () => {
+                    fullScreenItemId = null;
+                    updateModalVisibility();
+                    renderListOnly();
+                };
+
+                const fBody = document.createElement("div");
+                fBody.style.flex = "1";
+                fBody.style.overflowY = "auto";
+                fBody.appendChild(buildItemDetails(targetItem, true));
+                fullCard.appendChild(fBody);
+
+                fullModalBackdrop.appendChild(fullCard);
+                return;
+            }
+            fullScreenItemId = null;
+            updateModalVisibility();
+        }
 
         const filteredLogs = logs.filter((item) => {
             const matchesSearch =
@@ -642,7 +1005,7 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
         if (filteredLogs.length === 0) {
             logsList.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon-circle">${ICONS.wifiArrows("#6366F1", 38)}</div>
+                    <div class="empty-icon-circle">${ICONS.wifiArrows("#6366F1", 44)}</div>
                     <strong style="color: #0F172A; font-size: 15px;">Nenhuma requisição encontrada</strong>
                     <span style="font-size: 12px; color: #64748B;">As requisições feitas pela aplicação aparecerão aqui automaticamente.</span>
                 </div>
@@ -654,10 +1017,9 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             const methodColor = getMethodColor(item.method);
             const statusBadge = getStatusBadge(item.state, item.status);
             const isExpanded = expandedId === item.id;
-            const tab = activeTabMap[item.id] || "response";
 
             const logCard = document.createElement("div");
-            logCard.className = "log-card";
+            logCard.className = `log-card ${isExpanded ? "expanded" : ""}`;
 
             const logHeader = document.createElement("div");
             logHeader.className = "log-card-header";
@@ -690,133 +1052,7 @@ export function initWebNetworkInspector(options?: { enabled?: boolean }) {
             logCard.appendChild(logHeader);
 
             if (isExpanded) {
-                const expandedBox = document.createElement("div");
-                expandedBox.className = "expanded-box";
-
-                const tabsHeader = document.createElement("div");
-                tabsHeader.className = "tabs-header";
-
-                const tabDefs: Array<{ id: "response" | "request" | "headers"; label: string }> = [
-                    { id: "response", label: "Resposta" },
-                    { id: "request", label: "Envio" },
-                    { id: "headers", label: "Headers" },
-                ];
-
-                tabDefs.forEach((t) => {
-                    const tBtn = document.createElement("button");
-                    tBtn.className = `tab-btn ${tab === t.id ? "active" : ""}`;
-                    tBtn.textContent = t.label;
-                    tBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        activeTabMap[item.id] = t.id;
-                        renderListOnly();
-                    };
-                    tabsHeader.appendChild(tBtn);
-                });
-                expandedBox.appendChild(tabsHeader);
-
-                const tabContent = document.createElement("div");
-                tabContent.className = "tab-content";
-
-                const codeContainer = document.createElement("div");
-                codeContainer.className = "code-container";
-
-                if (tab === "response") {
-                    if (item.errorMessage) {
-                        const errBanner = document.createElement("div");
-                        errBanner.className = "error-banner";
-                        errBanner.style.marginBottom = "8px";
-                        errBanner.textContent = item.errorMessage;
-                        tabContent.appendChild(errBanner);
-                    }
-
-                    const responsePayload = item.state === "error" ? (item.errorData || item.responseData) : item.responseData;
-                    const responseStr = formatData(responsePayload);
-
-                    const cHeader = document.createElement("div");
-                    cHeader.className = "code-header-row";
-                    cHeader.innerHTML = `<span class="code-header-title">Corpo da Resposta</span>`;
-                    const copyBtn = document.createElement("button");
-                    const isCopied = copiedKey === `res_${item.id}`;
-                    copyBtn.className = `code-copy-btn ${isCopied ? "copied" : ""}`;
-                    copyBtn.innerHTML = `${isCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isCopied ? "Copiado" : "Copiar"}</span>`;
-                    copyBtn.onclick = () => copyToClipboard(responseStr, `res_${item.id}`);
-                    cHeader.appendChild(copyBtn);
-                    codeContainer.appendChild(cHeader);
-
-                    const pre = document.createElement("pre");
-                    pre.className = "code-text-pre";
-                    pre.textContent = responseStr;
-                    codeContainer.appendChild(pre);
-                }
-
-                if (tab === "request") {
-                    if (item.queryParams && Object.keys(item.queryParams).length > 0) {
-                        const qStr = formatData(item.queryParams);
-                        const qHeader = document.createElement("div");
-                        qHeader.className = "code-header-row";
-                        qHeader.innerHTML = `<span class="code-header-title">Query Params</span>`;
-                        const copyQBtn = document.createElement("button");
-                        const isQCopied = copiedKey === `query_${item.id}`;
-                        copyQBtn.className = `code-copy-btn ${isQCopied ? "copied" : ""}`;
-                        copyQBtn.innerHTML = `${isQCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isQCopied ? "Copiado" : "Copiar"}</span>`;
-                        copyQBtn.onclick = () => copyToClipboard(qStr, `query_${item.id}`);
-                        qHeader.appendChild(copyQBtn);
-                        codeContainer.appendChild(qHeader);
-
-                        const preQ = document.createElement("pre");
-                        preQ.className = "code-text-pre";
-                        preQ.style.marginBottom = "12px";
-                        preQ.textContent = qStr;
-                        codeContainer.appendChild(preQ);
-                    }
-
-                    if (item.requestData !== undefined && item.requestData !== null && item.requestData !== "") {
-                        const bodyStr = formatData(item.requestData);
-                        const bHeader = document.createElement("div");
-                        bHeader.className = "code-header-row";
-                        bHeader.innerHTML = `<span class="code-header-title">Payload Enviado</span>`;
-                        const copyBBtn = document.createElement("button");
-                        const isBCopied = copiedKey === `body_${item.id}`;
-                        copyBBtn.className = `code-copy-btn ${isBCopied ? "copied" : ""}`;
-                        copyBBtn.innerHTML = `${isBCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isBCopied ? "Copiado" : "Copiar"}</span>`;
-                        copyBBtn.onclick = () => copyToClipboard(bodyStr, `body_${item.id}`);
-                        bHeader.appendChild(copyBBtn);
-                        codeContainer.appendChild(bHeader);
-
-                        const preB = document.createElement("pre");
-                        preB.className = "code-text-pre";
-                        preB.textContent = bodyStr;
-                        codeContainer.appendChild(preB);
-                    }
-
-                    if (!item.queryParams && (item.requestData === undefined || item.requestData === null || item.requestData === "")) {
-                        codeContainer.innerHTML = `<span style="color:#94A3B8;">Requisição sem corpo ou parâmetros de query.</span>`;
-                    }
-                }
-
-                if (tab === "headers") {
-                    const headersStr = formatData(item.headers);
-                    const hHeader = document.createElement("div");
-                    hHeader.className = "code-header-row";
-                    hHeader.innerHTML = `<span class="code-header-title">Headers da Requisição</span>`;
-                    const copyHBtn = document.createElement("button");
-                    const isHCopied = copiedKey === `headers_${item.id}`;
-                    copyHBtn.className = `code-copy-btn ${isHCopied ? "copied" : ""}`;
-                    copyHBtn.innerHTML = `${isHCopied ? ICONS.check("#10B981", 12) : ICONS.copy("#94A3B8", 12)} <span>${isHCopied ? "Copiado" : "Copiar"}</span>`;
-                    copyHBtn.onclick = () => copyToClipboard(headersStr, `headers_${item.id}`);
-                    hHeader.appendChild(copyHBtn);
-                    codeContainer.appendChild(hHeader);
-
-                    const preH = document.createElement("pre");
-                    preH.className = "code-text-pre";
-                    preH.textContent = headersStr;
-                    codeContainer.appendChild(preH);
-                }
-
-                tabContent.appendChild(codeContainer);
-                expandedBox.appendChild(tabContent);
-                logCard.appendChild(expandedBox);
+                logCard.appendChild(buildItemDetails(item, false));
             }
 
             logsList.appendChild(logCard);

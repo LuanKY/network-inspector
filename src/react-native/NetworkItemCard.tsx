@@ -1,7 +1,6 @@
 import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NetworkRequestLog } from "../core/networkLogger";
 
@@ -89,7 +88,18 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
 
     const handleCopy = async (text: string, key: string) => {
         try {
-            await Clipboard.setStringAsync(text);
+            const clipboardModuleName = ["expo", "clipboard"].join("-");
+            let clipboardLib: any = null;
+            try {
+                clipboardLib = require(clipboardModuleName);
+            } catch {}
+
+            if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
+                await clipboardLib.setStringAsync(text);
+            } else {
+                await Share.share({ message: text });
+            }
+
             setCopiedKey(key);
             setTimeout(() => {
                 setCopiedKey((prev) => (prev === key ? null : prev));

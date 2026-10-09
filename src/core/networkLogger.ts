@@ -234,12 +234,7 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
                 addNetworkLog(logItem);
             } catch {}
 
-            const handleFinish = () => {
-                if (this[SYM_COMPLETED]) {
-                    return;
-                }
-                this[SYM_COMPLETED] = true;
-
+            const processFinish = () => {
                 try {
                     const startTime = this[SYM_START_TIME] || Date.now();
                     const duration = Date.now() - startTime;
@@ -249,19 +244,19 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
                     try {
                         const type = this.responseType || "";
                         if (type === "" || type === "text") {
-                            responseData = this.responseText;
+                            responseData = this.responseText !== undefined && this.responseText !== "" ? this.responseText : this.response;
                         } else if (type === "json") {
-                            responseData = this.response;
+                            responseData = this.response !== undefined && this.response !== null ? this.response : this.responseText;
                         } else if (type === "blob") {
                             responseData = `[Blob: ${this.response?.size || 0} bytes]`;
                         } else if (type === "arraybuffer") {
                             responseData = `[ArrayBuffer: ${this.response?.byteLength || 0} bytes]`;
                         } else {
-                            responseData = this.response;
+                            responseData = this.response !== undefined ? this.response : this.responseText;
                         }
                     } catch {
                         try {
-                            responseData = this.response;
+                            responseData = this.response || (this as any)._response;
                         } catch {}
                     }
 
@@ -282,6 +277,10 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
                         errorMessage: !isSuccess ? (this.statusText || `Status ${status}`) : undefined,
                     });
                 } catch {}
+            };
+
+            const handleFinish = () => {
+                setTimeout(processFinish, 15);
             };
 
             try {
