@@ -27,13 +27,16 @@ const networkLogger_1 = require("../core/networkLogger");
 const NetworkItemCard_1 = __importDefault(require("./NetworkItemCard"));
 __exportStar(require("../core/networkLogger"), exports);
 __exportStar(require("./NetworkItemCard"), exports);
+(0, networkLogger_1.initNetworkLogging)();
 const NetworkInspector = () => {
     const insets = (0, react_native_safe_area_context_1.useSafeAreaInsets)();
     const [visible, setVisible] = (0, react_1.useState)(false);
-    const [logs, setLogs] = (0, react_1.useState)([]);
+    const [logs, setLogs] = (0, react_1.useState)(() => (0, networkLogger_1.getNetworkLogs)());
     const [search, setSearch] = (0, react_1.useState)("");
     const [filterMethod, setFilterMethod] = (0, react_1.useState)("TODOS");
     (0, react_1.useEffect)(() => {
+        (0, networkLogger_1.initNetworkLogging)();
+        setLogs((0, networkLogger_1.getNetworkLogs)());
         let timer = null;
         const unsubscribe = (0, networkLogger_1.subscribeNetworkLogs)(() => {
             if (timer) {

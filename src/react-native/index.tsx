@@ -24,14 +24,18 @@ import NetworkItemCard from "./NetworkItemCard";
 export * from "../core/networkLogger";
 export * from "./NetworkItemCard";
 
+initNetworkLogging();
+
 export const NetworkInspector: React.FC = () => {
     const insets = useSafeAreaInsets();
     const [visible, setVisible] = useState(false);
-    const [logs, setLogs] = useState<NetworkRequestLog[]>([]);
+    const [logs, setLogs] = useState<NetworkRequestLog[]>(() => getNetworkLogs());
     const [search, setSearch] = useState("");
     const [filterMethod, setFilterMethod] = useState<string>("TODOS");
 
     useEffect(() => {
+        initNetworkLogging();
+        setLogs(getNetworkLogs());
         let timer: any = null;
         const unsubscribe = subscribeNetworkLogs(() => {
             if (timer) {

@@ -164,11 +164,7 @@ function parseBody(data: any): any {
 }
 
 export function initNetworkLogging(options?: { enabled?: boolean }) {
-    const isDev = typeof __DEV__ !== "undefined"
-        ? __DEV__
-        : typeof process !== "undefined" && process.env && process.env.NODE_ENV !== "production";
-
-    if (options?.enabled === false || (options?.enabled === undefined && !isDev)) {
+    if (options?.enabled === false) {
         return;
     }
 
@@ -291,9 +287,15 @@ export function initNetworkLogging(options?: { enabled?: boolean }) {
             try {
                 if (typeof this.addEventListener === "function") {
                     this.addEventListener("loadend", handleFinish);
+                    this.addEventListener("load", handleFinish);
                     this.addEventListener("error", handleFinish);
                     this.addEventListener("timeout", handleFinish);
                     this.addEventListener("abort", handleFinish);
+                    this.addEventListener("readystatechange", () => {
+                        if (this.readyState === 4) {
+                            handleFinish();
+                        }
+                    });
                 }
             } catch {}
 
