@@ -6,7 +6,8 @@ declare module "@expo/vector-icons" {
 }
 
 declare module "expo-clipboard" {
-    export function setStringAsync(text: string): Promise<boolean>;
+    export function setStringAsync(text: string, options?: any): Promise<boolean>;
+    export function setString(text: string): void;
 }
 
 declare module "react-native-safe-area-context" {

@@ -1,8 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NetworkItemCard = void 0;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const vector_icons_1 = require("@expo/vector-icons");
+const ExpoClipboard = __importStar(require("expo-clipboard"));
 const react_1 = require("react");
 const react_native_1 = require("react-native");
 const react_native_safe_area_context_1 = require("react-native-safe-area-context");
@@ -64,6 +98,20 @@ const formatContent = (data) => {
         return String(data);
     }
 };
+const generateCurl = (item) => {
+    const fullUrl = item.fullUrl || item.url || "";
+    const parts = [`curl -X ${item.method || "GET"} "${fullUrl}"`];
+    if (item.headers) {
+        Object.keys(item.headers).forEach((key) => {
+            parts.push(`  -H "${key}: ${item.headers[key]}"`);
+        });
+    }
+    if (item.requestData !== undefined && item.requestData !== null && item.requestData !== "") {
+        const bodyStr = typeof item.requestData === "object" ? JSON.stringify(item.requestData) : String(item.requestData);
+        parts.push(`  --data '${bodyStr.replace(/'/g, "'\\''")}'`);
+    }
+    return parts.join(" \\\n");
+};
 const NetworkItemCard = ({ item }) => {
     const insets = (0, react_native_safe_area_context_1.useSafeAreaInsets)();
     const [expanded, setExpanded] = (0, react_1.useState)(false);
@@ -80,12 +128,15 @@ const NetworkItemCard = ({ item }) => {
         : item.errorData;
     const handleCopy = async (text, key) => {
         try {
-            const clipboardModuleName = ["expo", "clipboard"].join("-");
+            const textToCopy = typeof text === "string" ? text : String(text ?? "");
             let copied = false;
             try {
-                const clipboardLib = require(clipboardModuleName);
-                if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
-                    await clipboardLib.setStringAsync(text);
+                if (ExpoClipboard && typeof ExpoClipboard.setStringAsync === "function") {
+                    await ExpoClipboard.setStringAsync(textToCopy);
+                    copied = true;
+                }
+                else if (ExpoClipboard && typeof ExpoClipboard.setString === "function") {
+                    ExpoClipboard.setString(textToCopy);
                     copied = true;
                 }
             }
@@ -93,20 +144,44 @@ const NetworkItemCard = ({ item }) => {
             if (!copied) {
                 try {
                     const rncLib = require("@react-native-clipboard/clipboard");
-                    if (rncLib && typeof rncLib.setString === "function") {
-                        rncLib.setString(text);
+                    const clipboard = rncLib?.default || rncLib;
+                    if (clipboard && typeof clipboard.setString === "function") {
+                        clipboard.setString(textToCopy);
+                        copied = true;
+                    }
+                }
+                catch { }
+            }
+            if (!copied && typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    copied = true;
+                }
+                catch { }
+            }
+            if (!copied) {
+                try {
+                    const rn = require("react-native");
+                    if (rn?.Clipboard && typeof rn.Clipboard.setString === "function") {
+                        rn.Clipboard.setString(textToCopy);
                         copied = true;
                     }
                 }
                 catch { }
             }
             if (!copied) {
-                await react_native_1.Share.share({ message: text });
+                try {
+                    await react_native_1.Share.share({ message: textToCopy });
+                    copied = true;
+                }
+                catch { }
             }
-            setCopiedKey(key);
-            setTimeout(() => {
-                setCopiedKey((prev) => (prev === key ? null : prev));
-            }, 2000);
+            if (copied) {
+                setCopiedKey(key);
+                setTimeout(() => {
+                    setCopiedKey((prev) => (prev === key ? null : prev));
+                }, 2000);
+            }
         }
         catch { }
     };
@@ -127,15 +202,18 @@ const NetworkItemCard = ({ item }) => {
                                                     ], children: copiedKey === `body_${prefix}` ? "Copiado" : "Copiar" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(item.requestData) })] })), !item.queryParams && !hasBody && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.emptyText, children: "Requisi\u00E7\u00E3o sem corpo ou par\u00E2metros de query." }))] })), tab === "headers" && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.codeContentBox, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fieldHeaderRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.subSectionTitle, children: "Headers da Requisi\u00E7\u00E3o:" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(formatContent(item.headers), `headers_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `headers_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `headers_${prefix}` ? "#10B981" : "#94A3B8" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
                                                 styles.fieldCopyText,
                                                 copiedKey === `headers_${prefix}` && styles.fieldCopyTextSuccess,
-                                            ], children: copiedKey === `headers_${prefix}` ? "Copiado" : "Copiar" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(item.headers) })] }))] }));
+                                            ], children: copiedKey === `headers_${prefix}` ? "Copiado" : "Copiar" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: formatContent(item.headers) })] })), tab === "curl" && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.codeContentBox, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fieldHeaderRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.subSectionTitle, children: "Comando cURL:" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(generateCurl(item), `curl_${prefix}`), style: styles.fieldCopyButton, hitSlop: { top: 6, bottom: 6, left: 6, right: 6 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `curl_${prefix}` ? "check" : "content-copy", size: 13, color: copiedKey === `curl_${prefix}` ? "#10B981" : "#94A3B8" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [
+                                                styles.fieldCopyText,
+                                                copiedKey === `curl_${prefix}` && styles.fieldCopyTextSuccess,
+                                            ], children: copiedKey === `curl_${prefix}` ? "Copiado" : "Copiar cURL" })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.codeText, selectable: true, children: generateCurl(item) })] }))] }));
     };
-    return ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.cardContainer, children: [(0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { activeOpacity: 0.75, onPress: () => setExpanded(!expanded), style: styles.cardHeaderPressable, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.topRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.badgeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.methodBadge, { backgroundColor: methodColor }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.methodBadgeText, children: method }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.statusBadge, { backgroundColor: statusBadge.bg }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.statusBadgeText, { color: statusBadge.textColor }], children: statusBadge.label }) }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.durationBadge, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: "clock-outline", size: 13, color: "#0284C7" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.durationText, children: item.duration !== undefined ? `${item.duration}ms` : "--" })] })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.timeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.timeText, children: item.timeFormatted }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.chevronCircle, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: expanded ? "chevron-up" : "chevron-down", size: 10, color: "#64748B" }) })] })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.urlBox, children: [item.baseUrl ? ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.baseUrlText, numberOfLines: 1, children: item.baseUrl })) : null, (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.endpointRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.endpointText, numberOfLines: expanded ? 10 : 2, children: item.endpoint || item.url || "/" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.fullUrl || item.url || item.endpoint, `url_${item.id}`), style: styles.copySmallButton, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `url_${item.id}` ? "check" : "content-copy", size: 14, color: copiedKey === `url_${item.id}` ? "#10B981" : "#64748B" }), copiedKey === `url_${item.id}` && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.copiedInlineText, children: "Copiado" }))] })] })] })] }), expanded && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.expandedSection, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsButtonGroup, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("response"), style: [styles.tabButton, tab === "response" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "response" && styles.tabButtonTextActive], children: "Resposta" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("request"), style: [styles.tabButton, tab === "request" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "request" && styles.tabButtonTextActive], children: hasParams || hasBody ? "Payload •" : "Payload" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("headers"), style: [styles.tabButton, tab === "headers" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive], children: "Headers" }) })] }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => setFullScreenVisible(true), style: styles.expandButton, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "expand-alt", size: 11, color: "#4F46E5" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.expandButtonText, children: "Expandir" })] })] }), renderCodeViewer(false)] }))] }), (0, jsx_runtime_1.jsx)(react_native_1.Modal, { visible: fullScreenVisible, animationType: "slide", onRequestClose: () => setFullScreenVisible(false), children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: [
+    return ((0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.cardContainer, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.cardHeaderBox, children: [(0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { activeOpacity: 0.75, onPress: () => setExpanded(!expanded), style: styles.cardHeaderPressable, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.topRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.badgeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.methodBadge, { backgroundColor: methodColor }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.methodBadgeText, children: method }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.statusBadge, { backgroundColor: statusBadge.bg }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.statusBadgeText, { color: statusBadge.textColor }], children: statusBadge.label }) }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.durationBadge, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: "clock-outline", size: 13, color: "#0284C7" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.durationText, children: item.duration !== undefined ? `${item.duration}ms` : "--" })] })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.timeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.timeText, children: item.timeFormatted }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.chevronCircle, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: expanded ? "chevron-up" : "chevron-down", size: 10, color: "#64748B" }) })] })] }), item.baseUrl ? ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.baseUrlText, numberOfLines: 1, children: item.baseUrl })) : null] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.endpointRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { activeOpacity: 0.75, onPress: () => setExpanded(!expanded), style: styles.endpointTextTouch, children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.endpointText, numberOfLines: expanded ? 10 : 2, children: item.endpoint || item.url || "/" }) }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.fullUrl || item.url || item.endpoint, `url_${item.id}`), style: styles.copySmallButton, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `url_${item.id}` ? "check" : "content-copy", size: 14, color: copiedKey === `url_${item.id}` ? "#10B981" : "#64748B" }), copiedKey === `url_${item.id}` && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.copiedInlineText, children: "Copiado" }))] })] })] }), expanded && ((0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.expandedSection, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsRow, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsButtonGroup, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("response"), style: [styles.tabButton, tab === "response" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "response" && styles.tabButtonTextActive], children: "Resposta" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("request"), style: [styles.tabButton, tab === "request" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "request" && styles.tabButtonTextActive], children: hasParams || hasBody ? "Payload •" : "Payload" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("headers"), style: [styles.tabButton, tab === "headers" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive], children: "Headers" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("curl"), style: [styles.tabButton, tab === "curl" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "curl" && styles.tabButtonTextActive], children: "cURL" }) })] }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => setFullScreenVisible(true), style: styles.expandButton, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "expand-alt", size: 11, color: "#4F46E5" }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.expandButtonText, children: "Expandir" })] })] }), renderCodeViewer(false)] }))] }), (0, jsx_runtime_1.jsx)(react_native_1.Modal, { visible: fullScreenVisible, animationType: "slide", onRequestClose: () => setFullScreenVisible(false), children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: [
                         styles.fullModalContainer,
                         {
                             paddingTop: Math.max(insets.top, 24),
                             paddingBottom: Math.max(insets.bottom, 12),
                         },
-                    ], children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalHeader, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalInfo, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalBadgeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.methodBadge, { backgroundColor: methodColor }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.methodBadgeText, children: method }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.statusBadge, { backgroundColor: statusBadge.bg }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.statusBadgeText, { color: statusBadge.textColor }], children: statusBadge.label }) }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.durationText, children: item.duration !== undefined ? `${item.duration}ms` : "--" })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.endpointRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.fullModalEndpointText, numberOfLines: 3, children: item.endpoint || item.url || "/" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.fullUrl || item.url || item.endpoint, `modal_url_${item.id}`), style: styles.copySmallButton, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `modal_url_${item.id}` ? "check" : "content-copy", size: 14, color: copiedKey === `modal_url_${item.id}` ? "#10B981" : "#64748B" }), copiedKey === `modal_url_${item.id}` && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.copiedInlineText, children: "Copiado" }))] })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setFullScreenVisible(false), style: styles.closeRoundButton, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "times", size: 14, color: "#0F172A" }) })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalBody, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.modalTabsRow, children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsButtonGroup, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("response"), style: [styles.tabButton, styles.modalTabButton, tab === "response" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "response" && styles.tabButtonTextActive], children: "Resposta" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("request"), style: [styles.tabButton, styles.modalTabButton, tab === "request" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "request" && styles.tabButtonTextActive], children: "Payload / Params" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("headers"), style: [styles.tabButton, styles.modalTabButton, tab === "headers" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive], children: "Headers" }) })] }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.fullCodeWrapper, children: renderCodeViewer(true) })] })] }) })] }));
+                    ], children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalHeader, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalInfo, children: [(0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalBadgeRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.methodBadge, { backgroundColor: methodColor }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.methodBadgeText, children: method }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: [styles.statusBadge, { backgroundColor: statusBadge.bg }], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.statusBadgeText, { color: statusBadge.textColor }], children: statusBadge.label }) }), (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.durationText, children: item.duration !== undefined ? `${item.duration}ms` : "--" })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.endpointRow, children: [(0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.fullModalEndpointText, numberOfLines: 3, children: item.endpoint || item.url || "/" }), (0, jsx_runtime_1.jsxs)(react_native_1.TouchableOpacity, { onPress: () => handleCopy(item.fullUrl || item.url || item.endpoint, `modal_url_${item.id}`), style: styles.copySmallButton, hitSlop: { top: 8, bottom: 8, left: 8, right: 8 }, children: [(0, jsx_runtime_1.jsx)(vector_icons_1.MaterialCommunityIcons, { name: copiedKey === `modal_url_${item.id}` ? "check" : "content-copy", size: 14, color: copiedKey === `modal_url_${item.id}` ? "#10B981" : "#64748B" }), copiedKey === `modal_url_${item.id}` && ((0, jsx_runtime_1.jsx)(react_native_1.Text, { style: styles.copiedInlineText, children: "Copiado" }))] })] })] }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setFullScreenVisible(false), style: styles.closeRoundButton, children: (0, jsx_runtime_1.jsx)(vector_icons_1.FontAwesome5, { name: "times", size: 14, color: "#0F172A" }) })] }), (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.fullModalBody, children: [(0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.modalTabsRow, children: (0, jsx_runtime_1.jsxs)(react_native_1.View, { style: styles.tabsButtonGroup, children: [(0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("response"), style: [styles.tabButton, styles.modalTabButton, tab === "response" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "response" && styles.tabButtonTextActive], children: "Resposta" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("request"), style: [styles.tabButton, styles.modalTabButton, tab === "request" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "request" && styles.tabButtonTextActive], children: "Payload / Params" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("headers"), style: [styles.tabButton, styles.modalTabButton, tab === "headers" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive], children: "Headers" }) }), (0, jsx_runtime_1.jsx)(react_native_1.TouchableOpacity, { onPress: () => setTab("curl"), style: [styles.tabButton, styles.modalTabButton, tab === "curl" && styles.tabButtonActive], children: (0, jsx_runtime_1.jsx)(react_native_1.Text, { style: [styles.tabButtonText, tab === "curl" && styles.tabButtonTextActive], children: "cURL" }) })] }) }), (0, jsx_runtime_1.jsx)(react_native_1.View, { style: styles.fullCodeWrapper, children: renderCodeViewer(true) })] })] }) })] }));
 };
 exports.NetworkItemCard = NetworkItemCard;
 const styles = react_native_1.StyleSheet.create({
@@ -153,8 +231,11 @@ const styles = react_native_1.StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 3,
     },
-    cardHeaderPressable: {
+    cardHeaderBox: {
         padding: 14,
+    },
+    cardHeaderPressable: {
+        width: "100%",
     },
     topRow: {
         width: "100%",
@@ -237,8 +318,10 @@ const styles = react_native_1.StyleSheet.create({
         justifyContent: "space-between",
         gap: 8,
     },
-    endpointText: {
+    endpointTextTouch: {
         flex: 1,
+    },
+    endpointText: {
         fontSize: 14,
         fontWeight: "bold",
         color: "#0F172A",

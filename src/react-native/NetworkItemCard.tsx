@@ -1,4 +1,5 @@
 import { FontAwesome5, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ExpoClipboard from "expo-clipboard";
 import React, { useState } from "react";
 import { Modal, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -68,11 +69,26 @@ const formatContent = (data: any) => {
     }
 };
 
+const generateCurl = (item: NetworkRequestLog): string => {
+    const fullUrl = item.fullUrl || item.url || "";
+    const parts = [`curl -X ${item.method || "GET"} "${fullUrl}"`];
+    if (item.headers) {
+        Object.keys(item.headers).forEach((key) => {
+            parts.push(`  -H "${key}: ${item.headers[key]}"`);
+        });
+    }
+    if (item.requestData !== undefined && item.requestData !== null && item.requestData !== "") {
+        const bodyStr = typeof item.requestData === "object" ? JSON.stringify(item.requestData) : String(item.requestData);
+        parts.push(`  --data '${bodyStr.replace(/'/g, "'\\''")}'`);
+    }
+    return parts.join(" \\\n");
+};
+
 export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
     const insets = useSafeAreaInsets();
     const [expanded, setExpanded] = useState(false);
     const [fullScreenVisible, setFullScreenVisible] = useState(false);
-    const [tab, setTab] = useState<"response" | "request" | "headers">("response");
+    const [tab, setTab] = useState<"response" | "request" | "headers" | "curl">("response");
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const method = (item.method || "GET").toUpperCase();
@@ -88,12 +104,15 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
 
     const handleCopy = async (text: string, key: string) => {
         try {
-            const clipboardModuleName = ["expo", "clipboard"].join("-");
+            const textToCopy = typeof text === "string" ? text : String(text ?? "");
             let copied = false;
+
             try {
-                const clipboardLib = require(clipboardModuleName);
-                if (clipboardLib && typeof clipboardLib.setStringAsync === "function") {
-                    await clipboardLib.setStringAsync(text);
+                if (ExpoClipboard && typeof ExpoClipboard.setStringAsync === "function") {
+                    await ExpoClipboard.setStringAsync(textToCopy);
+                    copied = true;
+                } else if (ExpoClipboard && typeof (ExpoClipboard as any).setString === "function") {
+                    (ExpoClipboard as any).setString(textToCopy);
                     copied = true;
                 }
             } catch {}
@@ -101,21 +120,44 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
             if (!copied) {
                 try {
                     const rncLib = require("@react-native-clipboard/clipboard");
-                    if (rncLib && typeof rncLib.setString === "function") {
-                        rncLib.setString(text);
+                    const clipboard = rncLib?.default || rncLib;
+                    if (clipboard && typeof clipboard.setString === "function") {
+                        clipboard.setString(textToCopy);
+                        copied = true;
+                    }
+                } catch {}
+            }
+
+            if (!copied && typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    copied = true;
+                } catch {}
+            }
+
+            if (!copied) {
+                try {
+                    const rn = require("react-native");
+                    if (rn?.Clipboard && typeof rn.Clipboard.setString === "function") {
+                        rn.Clipboard.setString(textToCopy);
                         copied = true;
                     }
                 } catch {}
             }
 
             if (!copied) {
-                await Share.share({ message: text });
+                try {
+                    await Share.share({ message: textToCopy });
+                    copied = true;
+                } catch {}
             }
 
-            setCopiedKey(key);
-            setTimeout(() => {
-                setCopiedKey((prev) => (prev === key ? null : prev));
-            }, 2000);
+            if (copied) {
+                setCopiedKey(key);
+                setTimeout(() => {
+                    setCopiedKey((prev) => (prev === key ? null : prev));
+                }, 2000);
+            }
         } catch {}
     };
 
@@ -293,6 +335,38 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
                         </Text>
                     </View>
                 )}
+
+                {tab === "curl" && (
+                    <View style={styles.codeContentBox}>
+                        <View style={styles.fieldHeaderRow}>
+                            <Text style={styles.subSectionTitle}>
+                                Comando cURL:
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => handleCopy(generateCurl(item), `curl_${prefix}`)}
+                                style={styles.fieldCopyButton}
+                                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                                <MaterialCommunityIcons
+                                    name={copiedKey === `curl_${prefix}` ? "check" : "content-copy"}
+                                    size={13}
+                                    color={copiedKey === `curl_${prefix}` ? "#10B981" : "#94A3B8"}
+                                />
+                                <Text
+                                    style={[
+                                        styles.fieldCopyText,
+                                        copiedKey === `curl_${prefix}` && styles.fieldCopyTextSuccess,
+                                    ]}
+                                >
+                                    {copiedKey === `curl_${prefix}` ? "Copiado" : "Copiar cURL"}
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={styles.codeText} selectable={true}>
+                            {generateCurl(item)}
+                        </Text>
+                    </View>
+                )}
             </ScrollView>
         );
     };
@@ -300,74 +374,81 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
     return (
         <>
             <View style={styles.cardContainer}>
-                <TouchableOpacity
-                    activeOpacity={0.75}
-                    onPress={() => setExpanded(!expanded)}
-                    style={styles.cardHeaderPressable}
-                >
-                    <View style={styles.topRow}>
-                        <View style={styles.badgeRow}>
-                            <View style={[styles.methodBadge, { backgroundColor: methodColor }]}>
-                                <Text style={styles.methodBadgeText}>
-                                    {method}
-                                </Text>
+                <View style={styles.cardHeaderBox}>
+                    <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => setExpanded(!expanded)}
+                        style={styles.cardHeaderPressable}
+                    >
+                        <View style={styles.topRow}>
+                            <View style={styles.badgeRow}>
+                                <View style={[styles.methodBadge, { backgroundColor: methodColor }]}>
+                                    <Text style={styles.methodBadgeText}>
+                                        {method}
+                                    </Text>
+                                </View>
+
+                                <View style={[styles.statusBadge, { backgroundColor: statusBadge.bg }]}>
+                                    <Text style={[styles.statusBadgeText, { color: statusBadge.textColor }]}>
+                                        {statusBadge.label}
+                                    </Text>
+                                </View>
+
+                                <View style={styles.durationBadge}>
+                                    <MaterialCommunityIcons name="clock-outline" size={13} color="#0284C7" />
+                                    <Text style={styles.durationText}>
+                                        {item.duration !== undefined ? `${item.duration}ms` : "--"}
+                                    </Text>
+                                </View>
                             </View>
 
-                            <View style={[styles.statusBadge, { backgroundColor: statusBadge.bg }]}>
-                                <Text style={[styles.statusBadgeText, { color: statusBadge.textColor }]}>
-                                    {statusBadge.label}
+                            <View style={styles.timeRow}>
+                                <Text style={styles.timeText}>
+                                    {item.timeFormatted}
                                 </Text>
-                            </View>
-
-                            <View style={styles.durationBadge}>
-                                <MaterialCommunityIcons name="clock-outline" size={13} color="#0284C7" />
-                                <Text style={styles.durationText}>
-                                    {item.duration !== undefined ? `${item.duration}ms` : "--"}
-                                </Text>
+                                <View style={styles.chevronCircle}>
+                                    <FontAwesome5
+                                        name={expanded ? "chevron-up" : "chevron-down"}
+                                        size={10}
+                                        color="#64748B"
+                                    />
+                                </View>
                             </View>
                         </View>
 
-                        <View style={styles.timeRow}>
-                            <Text style={styles.timeText}>
-                                {item.timeFormatted}
-                            </Text>
-                            <View style={styles.chevronCircle}>
-                                <FontAwesome5
-                                    name={expanded ? "chevron-up" : "chevron-down"}
-                                    size={10}
-                                    color="#64748B"
-                                />
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={styles.urlBox}>
                         {item.baseUrl ? (
                             <Text style={styles.baseUrlText} numberOfLines={1}>
                                 {item.baseUrl}
                             </Text>
                         ) : null}
-                        <View style={styles.endpointRow}>
+                    </TouchableOpacity>
+
+                    <View style={styles.endpointRow}>
+                        <TouchableOpacity
+                            activeOpacity={0.75}
+                            onPress={() => setExpanded(!expanded)}
+                            style={styles.endpointTextTouch}
+                        >
                             <Text style={styles.endpointText} numberOfLines={expanded ? 10 : 2}>
                                 {item.endpoint || item.url || "/"}
                             </Text>
-                            <TouchableOpacity
-                                onPress={() => handleCopy(item.fullUrl || item.url || item.endpoint, `url_${item.id}`)}
-                                style={styles.copySmallButton}
-                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            >
-                                <MaterialCommunityIcons
-                                    name={copiedKey === `url_${item.id}` ? "check" : "content-copy"}
-                                    size={14}
-                                    color={copiedKey === `url_${item.id}` ? "#10B981" : "#64748B"}
-                                />
-                                {copiedKey === `url_${item.id}` && (
-                                    <Text style={styles.copiedInlineText}>Copiado</Text>
-                                )}
-                            </TouchableOpacity>
-                        </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => handleCopy(item.fullUrl || item.url || item.endpoint, `url_${item.id}`)}
+                            style={styles.copySmallButton}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                            <MaterialCommunityIcons
+                                name={copiedKey === `url_${item.id}` ? "check" : "content-copy"}
+                                size={14}
+                                color={copiedKey === `url_${item.id}` ? "#10B981" : "#64748B"}
+                            />
+                            {copiedKey === `url_${item.id}` && (
+                                <Text style={styles.copiedInlineText}>Copiado</Text>
+                            )}
+                        </TouchableOpacity>
                     </View>
-                </TouchableOpacity>
+                </View>
 
                 {expanded && (
                     <View style={styles.expandedSection}>
@@ -397,6 +478,15 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
                                 >
                                     <Text style={[styles.tabButtonText, tab === "headers" && styles.tabButtonTextActive]}>
                                         Headers
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => setTab("curl")}
+                                    style={[styles.tabButton, tab === "curl" && styles.tabButtonActive]}
+                                >
+                                    <Text style={[styles.tabButtonText, tab === "curl" && styles.tabButtonTextActive]}>
+                                        cURL
                                     </Text>
                                 </TouchableOpacity>
                             </View>
@@ -506,6 +596,15 @@ export const NetworkItemCard: React.FC<NetworkItemCardProps> = ({ item }) => {
                                         Headers
                                     </Text>
                                 </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={() => setTab("curl")}
+                                    style={[styles.tabButton, styles.modalTabButton, tab === "curl" && styles.tabButtonActive]}
+                                >
+                                    <Text style={[styles.tabButtonText, tab === "curl" && styles.tabButtonTextActive]}>
+                                        cURL
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
 
@@ -534,8 +633,11 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 3,
     },
-    cardHeaderPressable: {
+    cardHeaderBox: {
         padding: 14,
+    },
+    cardHeaderPressable: {
+        width: "100%",
     },
     topRow: {
         width: "100%",
@@ -618,8 +720,10 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         gap: 8,
     },
-    endpointText: {
+    endpointTextTouch: {
         flex: 1,
+    },
+    endpointText: {
         fontSize: 14,
         fontWeight: "bold",
         color: "#0F172A",
